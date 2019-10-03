@@ -9,10 +9,8 @@
     "dev": "concurrently \"nodemon --exec babel-node app.js\" \"npm start --prefix ../client\"",
     "lint": "eslint ."
   },
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
+    "@babel/runtime": "^7.6.2",
     "apollo-server-express": "^2.9.3",
     "bcrypt": "^3.0.6",
     "dotenv": "^8.1.0",
@@ -26,7 +24,6 @@
     "@babel/node": "^7.6.1",
     "@babel/plugin-transform-runtime": "^7.6.2",
     "@babel/preset-env": "^7.6.0",
-    "@babel/runtime": "^7.6.2",
     "concurrently": "^4.1.2",
     "eslint": "^6.1.0",
     "eslint-config-airbnb-base": "^14.0.0",
