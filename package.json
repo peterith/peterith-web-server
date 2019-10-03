@@ -1,0 +1,40 @@
+{
+  "name": "peterith-web-server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node build/app.js",
+    "test": "jest",
+    "build": "babel src -d build",
+    "dev": "concurrently \"nodemon --exec babel-node app.js\" \"npm start --prefix ../client\"",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "apollo-server-express": "^2.9.3",
+    "bcrypt": "^3.0.6",
+    "dotenv": "^8.1.0",
+    "express": "^4.17.1",
+    "graphql": "^14.5.7",
+    "mongoose": "^5.7.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/node": "^7.6.1",
+    "@babel/plugin-transform-runtime": "^7.6.2",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/runtime": "^7.6.2",
+    "concurrently": "^4.1.2",
+    "eslint": "^6.1.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.3.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jest": "^22.17.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "jest": "^24.9.0",
+    "prettier": "^1.18.2"
+  }
+}
