@@ -1,17 +1,19 @@
-import { gql } from "apollo-server-express";
-import models from "../models";
-import bcrypt from "bcrypt";
+import { gql } from 'apollo-server-express';
+import models from '../models';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const typeDefs = gql`
   type Query {
-    login(user: UserInput!): UserResponse!
+    login(user: UserInput!): LoginResponse!
     checkUsername(username: String!): Response!
     checkEmail(email: String!): Response!
+    me: UserResponse!
   }
 
   type Mutation {
-    registerUser(user: UserInput!): UserResponse!
-    updateUser(user: UserInput!): UserResponse!
+    registerUser(user: UserInput!): Response!
+    updateUser(user: UserInput!): Response!
   }
 
   type Response {
@@ -19,10 +21,17 @@ export const typeDefs = gql`
     message: String!
   }
 
+  type LoginResponse {
+    success: Boolean!
+    message: String!
+    user: User
+    token: String
+  }
+
   type UserResponse {
     success: Boolean!
     message: String!
-    payload: User
+    user: User
   }
 
   type User {
@@ -32,7 +41,7 @@ export const typeDefs = gql`
     username: String
     email: String
     password: String
-    role: Role
+    role: [Role]
     createdAt: String
     updatedAt: String
   }
@@ -44,7 +53,7 @@ export const typeDefs = gql`
     username: String
     email: String
     password: String
-    role: Role
+    role: [Role]
   }
 
   enum Role {
@@ -63,17 +72,24 @@ export const resolvers = {
         });
 
         if (!user) {
-          throw "Username is not registered";
+          throw 'Username is not registered';
         }
 
         if (await bcrypt.compare(args.user.password, user.password)) {
+          const token = jwt.sign({}, process.env.SECRET_KEY, {
+            expiresIn: '1 day',
+            issuer: 'peterith.com',
+            subject: user.username
+          });
+
           return {
             success: true,
-            message: "Login successfully",
-            payload: user
+            message: 'Login successfully',
+            user,
+            token
           };
         } else {
-          throw "Incorrect password";
+          throw 'Incorrect password';
         }
       } catch (error) {
         return {
@@ -89,12 +105,12 @@ export const resolvers = {
         });
 
         if (user) {
-          throw "Username is already registered";
+          throw 'Username is already registered';
         }
 
         return {
           success: true,
-          message: "Username is not registered"
+          message: 'Username is not registered'
         };
       } catch (error) {
         return {
@@ -110,17 +126,41 @@ export const resolvers = {
         });
 
         if (user) {
-          throw "Email is already registered";
+          throw 'Email is already registered';
         }
 
         return {
           success: true,
-          message: "Email is not registered"
+          message: 'Email is not registered'
         };
       } catch (error) {
         return {
           success: false,
           message: error
+        };
+      }
+    },
+    me: async (_parent, _args, context, _info) => {
+      try {
+        if (!context.username) throw 'Please login';
+
+        const user = await models.User.findOne({
+          username: context.username
+        });
+
+        if (user) {
+          return {
+            success: true,
+            message: 'Get user successfully',
+            user
+          };
+        } else {
+          throw 'Failed to get user, please log in again';
+        }
+      } catch (error) {
+        return {
+          success: false,
+          message: 'Failed to get user'
         };
       }
     }
@@ -133,14 +173,14 @@ export const resolvers = {
           username: args.user.username
         });
         if (existedUsername) {
-          throw "Username is already registered";
+          throw 'Username is already registered';
         }
 
         const existedEmail = await models.User.findOne({
           email: args.user.email
         });
         if (existedEmail) {
-          throw "Email is already registered";
+          throw 'Email is already registered';
         }
 
         args.user.password = await bcrypt.hash(
@@ -151,11 +191,10 @@ export const resolvers = {
 
         return {
           success: true,
-          message: "User created successfully",
+          message: 'User created successfully',
           payload: user
         };
       } catch (error) {
-        console.log(error);
         return {
           success: false,
           message: error
@@ -175,15 +214,13 @@ export const resolvers = {
 
         return {
           success: true,
-          message: "User updated successfully",
+          message: 'User updated successfully',
           payload: user
         };
-      } catch (e) {
-        console.error(e);
-
+      } catch (error) {
         return {
           success: false,
-          message: "Failed to update user"
+          message: error
         };
       }
     }
