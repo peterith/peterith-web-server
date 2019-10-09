@@ -1,69 +1,8 @@
-import { gql } from 'apollo-server-express';
 import models from '../models';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-export const typeDefs = gql`
-  type Query {
-    login(user: UserInput!): LoginResponse!
-    checkUsername(username: String!): Response!
-    checkEmail(email: String!): Response!
-    me: UserResponse!
-  }
-
-  type Mutation {
-    registerUser(user: UserInput!): Response!
-    updateUser(user: UserInput!): Response!
-  }
-
-  type Response {
-    success: Boolean!
-    message: String!
-  }
-
-  type LoginResponse {
-    success: Boolean!
-    message: String!
-    user: User
-    token: String
-  }
-
-  type UserResponse {
-    success: Boolean!
-    message: String!
-    user: User
-  }
-
-  type User {
-    _id: ID
-    firstName: String
-    lastName: String
-    username: String
-    email: String
-    password: String
-    role: [Role]
-    createdAt: String
-    updatedAt: String
-  }
-
-  input UserInput {
-    _id: ID
-    firstName: String
-    lastName: String
-    username: String
-    email: String
-    password: String
-    role: [Role]
-  }
-
-  enum Role {
-    PETE
-    ADMIN
-    USER
-  }
-`;
-
-export const resolvers = {
+export default {
   Query: {
     login: async (_parent, args, _context, _info) => {
       try {
@@ -142,7 +81,9 @@ export const resolvers = {
     },
     me: async (_parent, _args, context, _info) => {
       try {
-        if (!context.username) throw 'Please login';
+        if (!context.username) {
+          throw 'Failed to authenticate user';
+        }
 
         const user = await models.User.findOne({
           username: context.username
@@ -151,16 +92,16 @@ export const resolvers = {
         if (user) {
           return {
             success: true,
-            message: 'Get user successfully',
+            message: 'User retrieve successfully',
             user
           };
         } else {
-          throw 'Failed to get user, please log in again';
+          throw 'Failed to retrieve user';
         }
       } catch (error) {
         return {
           success: false,
-          message: 'Failed to get user'
+          message: error
         };
       }
     }
