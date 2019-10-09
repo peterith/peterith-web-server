@@ -3,7 +3,8 @@ import { ApolloServer } from 'apollo-server-express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { typeDefs, resolvers } from './graphql/users';
+import resolvers from './resolvers';
+import typeDefs from './typeDefs';
 
 dotenv.config();
 
