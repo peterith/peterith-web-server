@@ -1,7 +1,7 @@
-import query from './query';
-import mutation from './mutation';
+import queries from './queries';
+import mutations from './mutations';
 import types from './types';
 import inputs from './inputs';
 import enums from './enums';
 
-export default [query, mutation, types, inputs, enums];
+export default [queries, mutations, types, inputs, enums];

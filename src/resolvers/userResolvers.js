@@ -1,35 +1,20 @@
 import models from '../models';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import { authenticateUser, generateUserToken } from '../utils/authentications';
 
 export default {
   Query: {
-    login: async (_parent, args, _context, _info) => {
+    login: async (_parent, { user }, _context, _info) => {
+      const { username, password } = user;
       try {
-        const user = await models.User.findOne({
-          username: args.user.username
-        });
+        await authenticateUser(models.User, username, password);
 
-        if (!user) {
-          throw 'Username is not registered';
-        }
-
-        if (await bcrypt.compare(args.user.password, user.password)) {
-          const token = jwt.sign({}, process.env.SECRET_KEY, {
-            expiresIn: '1 day',
-            issuer: 'peterith.com',
-            subject: user.username
-          });
-
-          return {
-            success: true,
-            message: 'Login successfully',
-            user,
-            token
-          };
-        } else {
-          throw 'Incorrect password';
-        }
+        return {
+          success: true,
+          message: 'User login successfully',
+          username,
+          token: generateUserToken(username)
+        };
       } catch (error) {
         return {
           success: false,
@@ -37,10 +22,15 @@ export default {
         };
       }
     },
-    checkUsername: async (_parent, args, _context, _info) => {
+    validateUsernameAvailability: async (
+      _parent,
+      { username },
+      _context,
+      _info
+    ) => {
       try {
         const user = await models.User.findOne({
-          username: args.username
+          username
         });
 
         if (user) {
@@ -58,10 +48,10 @@ export default {
         };
       }
     },
-    checkEmail: async (_parent, args, _context, _info) => {
+    validateEmailAvailability: async (_parent, { email }, _context, _info) => {
       try {
         const user = await models.User.findOne({
-          email: args.email
+          email
         });
 
         if (user) {
@@ -79,15 +69,13 @@ export default {
         };
       }
     },
-    me: async (_parent, _args, context, _info) => {
+    getUser: async (_parent, { username }, context, _info) => {
       try {
-        if (!context.username) {
-          throw 'Failed to authenticate user';
+        if (username !== context.username) {
+          throw 'You do not have the permission to access this page.';
         }
 
-        const user = await models.User.findOne({
-          username: context.username
-        });
+        const user = await models.User.findOne({ username });
 
         if (user) {
           return {
@@ -108,32 +96,33 @@ export default {
   },
 
   Mutation: {
-    registerUser: async (_parent, args, _context, _info) => {
+    registerUser: async (_parent, { user }, _context, _info) => {
       try {
-        const existedUsername = await models.User.findOne({
-          username: args.user.username
+        let existedUser = await models.User.findOne({
+          username: user.username
         });
-        if (existedUsername) {
+
+        if (existedUser) {
           throw 'Username is already registered';
         }
 
-        const existedEmail = await models.User.findOne({
-          email: args.user.email
+        existedUser = await models.User.findOne({
+          email: user.email
         });
-        if (existedEmail) {
+
+        if (existedUser) {
           throw 'Email is already registered';
         }
 
-        args.user.password = await bcrypt.hash(
-          args.user.password,
+        user.password = await bcrypt.hash(
+          user.password,
           Number(process.env.SALT_ROUNDS)
         );
-        const user = await models.User.create(args.user);
+        await models.User.create(user);
 
         return {
           success: true,
-          message: 'User created successfully',
-          payload: user
+          message: 'User created successfully'
         };
       } catch (error) {
         return {
@@ -143,20 +132,30 @@ export default {
       }
     },
 
-    updateUser: async (_parent, args, _context, _info) => {
+    updateUser: async (_parent, args, context, _info) => {
+      const { oldPassword, ...user } = args.user;
       try {
-        const user = await models.User.findOneAndUpdate(
-          { _id: args.user._id },
-          args.user,
-          {
-            new: true
-          }
+        await authenticateUser(models.User, context.username, oldPassword);
+
+        if (user.password) {
+          user.password = await bcrypt.hash(
+            user.password,
+            Number(process.env.SALT_ROUNDS)
+          );
+        } else {
+          delete user.password;
+        }
+
+        await models.User.findOneAndUpdate(
+          { username: context.username },
+          user
         );
 
         return {
           success: true,
           message: 'User updated successfully',
-          payload: user
+          username: user.username,
+          token: generateUserToken(user.username)
         };
       } catch (error) {
         return {

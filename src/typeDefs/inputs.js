@@ -8,6 +8,7 @@ export default gql`
     username: String
     email: String
     password: String
+    oldPassword: String
     role: [Role]
   }
 `;
