@@ -6,10 +6,10 @@ export default gql`
     message: String!
   }
 
-  type LoginResponse {
+  type TokenResponse {
     success: Boolean!
     message: String!
-    user: User
+    username: String
     token: String
   }
 
