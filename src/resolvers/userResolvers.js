@@ -122,7 +122,9 @@ export default {
 
         return {
           success: true,
-          message: 'User created successfully'
+          message: 'User created successfully',
+          username: user.username,
+          token: generateUserToken(user.username)
         };
       } catch (error) {
         return {
@@ -131,11 +133,10 @@ export default {
         };
       }
     },
-
-    updateUser: async (_parent, args, context, _info) => {
+    updateUser: async (_parent, args, { username }, _info) => {
       const { oldPassword, ...user } = args.user;
       try {
-        await authenticateUser(models.User, context.username, oldPassword);
+        await authenticateUser(models.User, username, oldPassword);
 
         if (user.password) {
           user.password = await bcrypt.hash(
@@ -146,16 +147,29 @@ export default {
           delete user.password;
         }
 
-        await models.User.findOneAndUpdate(
-          { username: context.username },
-          user
-        );
+        await models.User.findOneAndUpdate({ username }, user);
 
         return {
           success: true,
           message: 'User updated successfully',
           username: user.username,
           token: generateUserToken(user.username)
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: error
+        };
+      }
+    },
+    deleteUser: async (_parent, { password }, { username }, _info) => {
+      try {
+        await authenticateUser(models.User, username, password);
+        await models.User.deleteOne({ username });
+
+        return {
+          success: true,
+          message: 'User deleted successfully'
         };
       } catch (error) {
         return {
