@@ -1,4 +1,3 @@
-import models from '../models';
 import bcrypt from 'bcrypt';
 import { authenticateUser, generateUserToken } from '../utils/authentications';
 

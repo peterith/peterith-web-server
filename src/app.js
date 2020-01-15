@@ -2,45 +2,26 @@ import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
-import resolvers from './resolvers';
+import { connectToDatabase } from './utils/database';
+import { createContext } from './utils/apolloServer';
 import typeDefs from './typeDefs';
+import resolvers from './resolvers';
+import models from './models';
 
 dotenv.config();
 
-mongoose.connect(
-  `${process.env.DB_SCHEME}://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_CLUSTER}`,
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
-  }
-);
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'Connection error:'));
+connectToDatabase();
+mongoose.connection.on('error', error => console.error(error));
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => {
-    const authHeader = req.headers.authorization;
-
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const username = jwt.verify(token, process.env.SECRET_KEY).sub;
-
-        return { username };
-      } catch (error) {
-        return {};
-      }
-    }
-  }
+  context: ({ req }) => createContext(req, models)
 });
 
 const app = express();
 const port = process.env.PORT || 4000;
-
 server.applyMiddleware({ app });
-app.listen(port);
+app.listen(port, () => {
+  console.log(`Server ready at http://localhost:${port}/${server.graphqlPath}`);
+});
