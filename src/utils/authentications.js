@@ -1,26 +1,12 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-export const authenticateUser = (User, username, password) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const user = await User.findOne({
-        username
-      });
-
-      if (!user) {
-        reject('Username is not registered');
-      }
-
-      if (await bcrypt.compare(password, user.password)) {
-        resolve();
-      }
-
-      reject('Incorrect password');
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const authenticateUser = async (username, password, { User }) => {
+  const user = await User.findOne({ username });
+  if (user && (await bcrypt.compare(password, user.password))) {
+    return true;
+  }
+  throw new Error('Failed to authenticate user');
 };
 
 export const generateUserToken = username => {

@@ -9,6 +9,9 @@
     "dev": "nodemon --exec babel-node src/app.js",
     "lint": "eslint ."
   },
+  "jest": {
+    "testEnvironment": "node"
+  },
   "dependencies": {
     "@babel/runtime": "^7.8.3",
     "apollo-server-express": "^2.9.16",

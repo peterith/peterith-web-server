@@ -4,13 +4,22 @@ import models from '../models';
 import { createContext } from './apolloServer';
 
 describe('Apollo Server', () => {
-  beforeAll(() => {
-    setUp();
+  beforeAll(async () => {
+    try {
+      await setUp();
+    } catch (error) {
+      console.error(error);
+    }
   });
 
-  afterAll(() => {
-    tearDown();
+  afterAll(async () => {
+    try {
+      await tearDown();
+    } catch (error) {
+      console.error(error);
+    }
   });
+
   it('should return context', async () => {
     const token = jwt.sign({}, process.env.SECRET_KEY, {
       expiresIn: '1 day',

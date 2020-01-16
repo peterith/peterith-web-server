@@ -3,11 +3,14 @@ import { authenticateUser, generateUserToken } from '../utils/authentications';
 
 export default {
   Query: {
-    login: async (_parent, { user }, _context, _info) => {
-      const { username, password } = user;
+    login: async (
+      _parent,
+      { user: { username, password } },
+      { models },
+      _info
+    ) => {
       try {
-        await authenticateUser(models.User, username, password);
-
+        await authenticateUser(username, password, models);
         return {
           success: true,
           message: 'User login successfully',
@@ -24,7 +27,7 @@ export default {
     validateUsernameAvailability: async (
       _parent,
       { username },
-      _context,
+      { models },
       _info
     ) => {
       try {
@@ -47,7 +50,12 @@ export default {
         };
       }
     },
-    validateEmailAvailability: async (_parent, { email }, _context, _info) => {
+    validateEmailAvailability: async (
+      _parent,
+      { email },
+      { models },
+      _info
+    ) => {
       try {
         const user = await models.User.findOne({
           email
@@ -95,7 +103,7 @@ export default {
   },
 
   Mutation: {
-    registerUser: async (_parent, { user }, _context, _info) => {
+    registerUser: async (_parent, { user }, { models }, _info) => {
       try {
         let existedUser = await models.User.findOne({
           username: user.username
@@ -132,10 +140,10 @@ export default {
         };
       }
     },
-    updateUser: async (_parent, args, { username }, _info) => {
+    updateUser: async (_parent, args, { user: contextUser, models }, _info) => {
       const { oldPassword, ...user } = args.user;
       try {
-        await authenticateUser(models.User, username, oldPassword);
+        await authenticateUser(contextUser, oldPassword, models);
 
         if (user.password) {
           user.password = await bcrypt.hash(
@@ -161,10 +169,10 @@ export default {
         };
       }
     },
-    deleteUser: async (_parent, { password }, { username }, _info) => {
+    deleteUser: async (_parent, { password }, { user }, _info) => {
       try {
-        await authenticateUser(models.User, username, password);
-        await models.User.deleteOne({ username });
+        await authenticateUser(user, password, models);
+        await models.User.deleteOne({ user });
 
         return {
           success: true,
