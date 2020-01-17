@@ -1,11 +1,11 @@
-import { setUp, tearDown } from './testUtils';
+import { setUpTestDatabase, tearDown } from './testUtils';
 import models from '../models';
-import { authenticateUser } from './authentications';
+import { authenticateUser } from './authentication';
 
-describe('Authentications', () => {
+describe('Authentication', () => {
   beforeAll(async () => {
     try {
-      await setUp();
+      await setUpTestDatabase();
     } catch (error) {
       console.error(error);
     }

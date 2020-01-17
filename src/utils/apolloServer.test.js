@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken';
-import { setUp, tearDown } from './testUtils';
+import { setUpTestDatabase, tearDown } from './testUtils';
 import models from '../models';
 import { createContext } from './apolloServer';
 
 describe('Apollo Server', () => {
   beforeAll(async () => {
     try {
-      await setUp();
+      await setUpTestDatabase();
     } catch (error) {
       console.error(error);
     }

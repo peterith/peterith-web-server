@@ -1,16 +1,11 @@
 import bcrypt from 'bcrypt';
-import { authenticateUser, generateUserToken } from '../utils/authentications';
+import { authenticateUser, generateUserToken } from '../utils/authentication';
 
 export default {
   Query: {
-    login: async (
-      _parent,
-      { user: { username, password } },
-      { models },
-      _info
-    ) => {
+    login: async (_parent, { user: { username, password } }, { db }, _info) => {
       try {
-        await authenticateUser(username, password, models);
+        await authenticateUser(username, password, db);
         return {
           success: true,
           message: 'User login successfully',
@@ -31,7 +26,7 @@ export default {
       _info
     ) => {
       try {
-        const user = await models.User.findOne({
+        const user = await db.User.findOne({
           username
         });
 
@@ -50,14 +45,9 @@ export default {
         };
       }
     },
-    validateEmailAvailability: async (
-      _parent,
-      { email },
-      { models },
-      _info
-    ) => {
+    validateEmailAvailability: async (_parent, { email }, { db }, _info) => {
       try {
-        const user = await models.User.findOne({
+        const user = await db.User.findOne({
           email
         });
 
@@ -82,7 +72,7 @@ export default {
           throw 'You do not have the permission to access this page.';
         }
 
-        const user = await models.User.findOne({ username });
+        const user = await db.User.findOne({ username });
 
         if (user) {
           return {
@@ -103,47 +93,25 @@ export default {
   },
 
   Mutation: {
-    registerUser: async (_parent, { user }, { models }, _info) => {
-      try {
-        let existedUser = await models.User.findOne({
-          username: user.username
-        });
-
-        if (existedUser) {
-          throw 'Username is already registered';
-        }
-
-        existedUser = await models.User.findOne({
-          email: user.email
-        });
-
-        if (existedUser) {
-          throw 'Email is already registered';
-        }
-
-        user.password = await bcrypt.hash(
+    registerUser: async (_parent, { user }, { db }, _info) => {
+      if (await db.User.findOne({ username: user.username })) {
+        throw new Error('Username is already registered');
+      }
+      if (await db.User.findOne({ email: user.email })) {
+        throw new Error('Email is already registered');
+      }
+      return await db.User.create({
+        ...user,
+        password: await bcrypt.hash(
           user.password,
           Number(process.env.SALT_ROUNDS)
-        );
-        await models.User.create(user);
-
-        return {
-          success: true,
-          message: 'User created successfully',
-          username: user.username,
-          token: generateUserToken(user.username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+        )
+      });
     },
-    updateUser: async (_parent, args, { user: contextUser, models }, _info) => {
+    updateUser: async (_parent, args, { user: contextUser, db }, _info) => {
       const { oldPassword, ...user } = args.user;
       try {
-        await authenticateUser(contextUser, oldPassword, models);
+        await authenticateUser(contextUser, oldPassword, db);
 
         if (user.password) {
           user.password = await bcrypt.hash(
@@ -154,7 +122,7 @@ export default {
           delete user.password;
         }
 
-        await models.User.findOneAndUpdate({ username }, user);
+        await db.User.findOneAndUpdate({ username }, user);
 
         return {
           success: true,
@@ -171,8 +139,8 @@ export default {
     },
     deleteUser: async (_parent, { password }, { user }, _info) => {
       try {
-        await authenticateUser(user, password, models);
-        await models.User.deleteOne({ user });
+        await authenticateUser(user, password, db);
+        await db.User.deleteOne({ user });
 
         return {
           success: true,
