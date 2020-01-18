@@ -137,21 +137,9 @@ export default {
         };
       }
     },
-    deleteUser: async (_parent, { password }, { user }, _info) => {
-      try {
-        await authenticateUser(user, password, db);
-        await db.User.deleteOne({ user });
-
-        return {
-          success: true,
-          message: 'User deleted successfully'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+    deleteUser: async (_parent, { password }, { user, db }, _info) => {
+      await authenticateUser(user, password, db);
+      return db.User.findOneAndDelete({ username: user });
     }
   }
 };

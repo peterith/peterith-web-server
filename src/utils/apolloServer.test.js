@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { setUpTestDatabase, tearDown } from './testUtils';
 import models from '../models';
@@ -6,6 +7,7 @@ import { createContext } from './apolloServer';
 describe('Apollo Server', () => {
   beforeAll(async () => {
     try {
+      dotenv.config();
       await setUpTestDatabase();
     } catch (error) {
       console.error(error);

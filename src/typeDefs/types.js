@@ -25,7 +25,7 @@ export default gql`
     lastName: String
     username: String
     email: String
-    role: [Role]
+    role: Role
     createdAt: String
     updatedAt: String
   }

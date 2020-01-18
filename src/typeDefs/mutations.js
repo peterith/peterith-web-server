@@ -4,6 +4,6 @@ export default gql`
   type Mutation {
     registerUser(user: UserInput!): User!
     updateUser(user: UserInput!): TokenResponse!
-    deleteUser(password: String!): Response!
+    deleteUser(password: String!): User!
   }
 `;

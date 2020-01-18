@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { roleEnum } from '../utils/enums';
 
 export default mongoose.model(
   'User',
@@ -9,9 +10,10 @@ export default mongoose.model(
       username: String,
       email: String,
       password: String,
-      roles: {
-        type: [{ type: String, enum: ['PETE', 'ADMIN', 'USER'] }],
-        default: ['USER']
+      role: {
+        type: String,
+        enum: Object.values(roleEnum),
+        default: roleEnum.USER
       }
     },
     {
