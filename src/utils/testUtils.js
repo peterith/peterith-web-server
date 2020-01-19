@@ -1,43 +1,32 @@
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
-import models from '../models';
+import { ApolloServer } from 'apollo-server-express';
 import { createTestClient } from 'apollo-server-testing';
-import { createTestServer } from './apolloServer';
+import models from '../models';
+import typeDefs from '../typeDefs';
+import resolvers from '../resolvers';
 
 export const setUp = async () => {
+  dotenv.config();
   await setUpTestDatabase();
-  return setUpTestClient();
+  return createTestClient(
+    new ApolloServer({
+      typeDefs,
+      resolvers,
+      context: () => ({ user: 'johndoe', db: models })
+    })
+  );
 };
 
 export const setUpTestDatabase = async () => {
   await mongoose.connect('mongodb://localhost/test', {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
   });
-  await insertTestData();
-};
-
-export const resetTestData = async () => {
-  await Promise.all(Object.keys(models).map(key => models[key].deleteMany({})));
-  await insertTestData();
 };
 
 export const tearDown = async () => {
   await Promise.all(Object.keys(models).map(key => models[key].deleteMany({})));
   await mongoose.connection.close();
-};
-
-const setUpTestClient = () => {
-  const server = createTestServer();
-  return createTestClient(server);
-};
-
-const insertTestData = async () => {
-  await models.User.create({
-    firstName: 'Peerapong',
-    lastName: 'Rithisith',
-    email: 'p.rithisith@hotmail.com',
-    username: 'peterith',
-    password: await bcrypt.hash('password', Number(process.env.SALT_ROUNDS))
-  });
 };

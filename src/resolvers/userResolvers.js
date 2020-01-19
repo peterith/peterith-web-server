@@ -1,141 +1,56 @@
-import bcrypt from 'bcrypt';
 import { authenticateUser, generateUserToken } from '../utils/authentication';
+import { errorMessageEnum } from '../utils/enums';
 
 export default {
   Query: {
     login: async (_parent, { user: { username, password } }, { db }, _info) => {
-      try {
-        await authenticateUser(username, password, db);
-        return {
-          success: true,
-          message: 'User login successfully',
-          username,
-          token: generateUserToken(username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+      await authenticateUser(username, password, db);
+      const user = await db.User.findOne({ username });
+      user.token = generateUserToken(username);
+      return user;
     },
     validateUsernameAvailability: async (
       _parent,
       { username },
-      { models },
+      { db },
       _info
-    ) => {
-      try {
-        const user = await db.User.findOne({
-          username
-        });
-
-        if (user) {
-          throw 'Username is already registered';
-        }
-
-        return {
-          success: true,
-          message: 'Username is not registered'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
+    ) => ((await db.User.findOne({ username })) ? false : true),
+    validateEmailAvailability: async (_parent, { email }, { db }, _info) =>
+      (await db.User.findOne({ email })) ? false : true,
+    getUser: async (_parent, { username }, { user: contextUser }, _info) => {
+      if (username !== contextUser) {
+        throw 'You do not have the permission to access this page.';
       }
-    },
-    validateEmailAvailability: async (_parent, { email }, { db }, _info) => {
-      try {
-        const user = await db.User.findOne({
-          email
-        });
-
-        if (user) {
-          throw 'Email is already registered';
-        }
-
-        return {
-          success: true,
-          message: 'Email is not registered'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
-    },
-    getUser: async (_parent, { username }, context, _info) => {
-      try {
-        if (username !== context.username) {
-          throw 'You do not have the permission to access this page.';
-        }
-
-        const user = await db.User.findOne({ username });
-
-        if (user) {
-          return {
-            success: true,
-            message: 'User retrieve successfully',
-            user
-          };
-        } else {
-          throw 'Failed to retrieve user';
-        }
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+      return db.User.findOne({ username });
     }
   },
 
   Mutation: {
     registerUser: async (_parent, { user }, { db }, _info) => {
       if (await db.User.findOne({ username: user.username })) {
-        throw new Error('Username is already registered');
+        throw new Error(errorMessageEnum.USERNAME_TAKEN);
       }
       if (await db.User.findOne({ email: user.email })) {
-        throw new Error('Email is already registered');
+        throw new Error(errorMessageEnum.EMAIL_TAKEN);
       }
-      return await db.User.create({
-        ...user,
-        password: await bcrypt.hash(
-          user.password,
-          Number(process.env.SALT_ROUNDS)
-        )
-      });
+      const result = await db.User.create(user);
+      result.token = generateUserToken(user.username);
+      return result;
     },
-    updateUser: async (_parent, args, { user: contextUser, db }, _info) => {
-      const { oldPassword, ...user } = args.user;
-      try {
-        await authenticateUser(contextUser, oldPassword, db);
-
-        if (user.password) {
-          user.password = await bcrypt.hash(
-            user.password,
-            Number(process.env.SALT_ROUNDS)
-          );
-        } else {
-          delete user.password;
-        }
-
-        await db.User.findOneAndUpdate({ username }, user);
-
-        return {
-          success: true,
-          message: 'User updated successfully',
-          username: user.username,
-          token: generateUserToken(user.username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+    updateUser: async (
+      _parent,
+      { user, oldPassword },
+      { user: contextUser, db },
+      _info
+    ) => {
+      await authenticateUser(contextUser, oldPassword, db);
+      const result = await db.User.findOneAndUpdate(
+        { username: contextUser },
+        user,
+        { new: true, runValidators: true }
+      );
+      result.token = generateUserToken(user.username);
+      return result;
     },
     deleteUser: async (_parent, { password }, { user, db }, _info) => {
       await authenticateUser(user, password, db);

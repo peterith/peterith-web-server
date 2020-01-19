@@ -1,33 +1,15 @@
 import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
-import { setUpTestDatabase, tearDown } from './testUtils';
 import models from '../models';
 import { createContext } from './apolloServer';
+import { generateUserToken } from './authentication';
 
 describe('Apollo Server', () => {
-  beforeAll(async () => {
-    try {
-      dotenv.config();
-      await setUpTestDatabase();
-    } catch (error) {
-      console.error(error);
-    }
-  });
-
-  afterAll(async () => {
-    try {
-      await tearDown();
-    } catch (error) {
-      console.error(error);
-    }
+  beforeAll(() => {
+    dotenv.config();
   });
 
   it('should return context', async () => {
-    const token = jwt.sign({}, process.env.SECRET_KEY, {
-      expiresIn: '1 day',
-      issuer: 'peterith.com',
-      subject: 'peterith'
-    });
+    const token = generateUserToken('peterith');
     const req = {
       headers: {
         authorization: `bearer ${token}`
@@ -40,7 +22,7 @@ describe('Apollo Server', () => {
     expect(createContext(req, models)).toEqual(context);
   });
 
-  it('should return context with no user if no autorization header is provided', () => {
+  it('should return context with no user if no authorization header is provided', () => {
     const req = {
       headers: {
         authorization: null
@@ -53,7 +35,7 @@ describe('Apollo Server', () => {
     expect(createContext(req, models)).toEqual(context);
   });
 
-  it('should return context with no user if token is not verified', () => {
+  it('should return context with no user if token is malformed', () => {
     const req = {
       headers: {
         authorization: `bearer malformedToken`
