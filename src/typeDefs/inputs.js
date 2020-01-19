@@ -4,8 +4,8 @@ export default gql`
   input UserInput {
     firstName: String
     lastName: String
-    username: String!
-    email: String!
+    username: String
+    email: String
     password: String
   }
 `;

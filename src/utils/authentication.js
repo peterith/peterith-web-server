@@ -5,9 +5,9 @@ import { errorMessageEnum } from './enums';
 export const authenticateUser = async (username, password, { User }) => {
   const user = await User.findOne({ username });
   if (user && (await bcrypt.compare(password, user.password))) {
-    return true;
+    return user;
   }
-  throw new Error(errorMessageEnum.AUTH);
+  throw new Error(errorMessageEnum.AUTH_FAILED);
 };
 
 export const generateUserToken = username =>

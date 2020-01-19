@@ -4,7 +4,245 @@ import { setUp, tearDown } from '../utils/testUtils';
 import models from '../models';
 import { roleEnum, errorMessageEnum } from '../utils/enums';
 
-let mutate;
+let query, mutate;
+
+describe('Login', () => {
+  const LOGIN = gql`
+    query Login($user: UserInput!) {
+      login(user: $user) {
+        token
+        firstName
+        lastName
+        username
+        email
+        role
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  beforeAll(async () => {
+    ({ query } = await setUp());
+    await Promise.all(
+      Object.keys(models).map(key => models[key].deleteMany({}))
+    );
+    await models.User.create({
+      firstName: 'John',
+      lastName: 'Doe',
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password'
+    });
+  });
+
+  afterAll(async () => {
+    await tearDown();
+  });
+
+  it('should return user', async () => {
+    const {
+      data: { login }
+    } = await query({
+      query: LOGIN,
+      variables: {
+        user: {
+          username: 'johndoe',
+          password: 'password'
+        }
+      }
+    });
+    expect(login.token).toMatch(
+      /^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/
+    );
+    expect(login.firstName).toBe('John');
+    expect(login.lastName).toBe('Doe');
+    expect(login.username).toBe('johndoe');
+    expect(login.email).toBe('johndoe@mail.com');
+    expect(login.role).toBe(roleEnum.USER);
+  });
+
+  it('should throw error is username is incorrect', async () => {
+    const { errors } = await query({
+      query: LOGIN,
+      variables: {
+        user: {
+          username: 'joebloggs',
+          password: 'password'
+        }
+      }
+    });
+    expect(errors[0].message).toBe(errorMessageEnum.AUTH_FAILED);
+  });
+
+  it('should throw error is password is incorrect', async () => {
+    const { errors } = await query({
+      query: LOGIN,
+      variables: {
+        user: {
+          username: 'johndoe',
+          password: '12345678'
+        }
+      }
+    });
+    expect(errors[0].message).toBe(errorMessageEnum.AUTH_FAILED);
+  });
+});
+
+describe('Get User', () => {
+  const GET_USER = gql`
+    query GetUser($username: String!) {
+      getUser(username: $username) {
+        token
+        firstName
+        lastName
+        username
+        email
+        role
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  beforeAll(async () => {
+    ({ query } = await setUp());
+    await Promise.all(
+      Object.keys(models).map(key => models[key].deleteMany({}))
+    );
+    await models.User.create({
+      firstName: 'John',
+      lastName: 'Doe',
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password'
+    });
+  });
+
+  afterAll(async () => {
+    await tearDown();
+  });
+
+  it('should return user', async () => {
+    const {
+      data: { getUser }
+    } = await query({
+      query: GET_USER,
+      variables: { username: 'johndoe' }
+    });
+    expect(getUser.firstName).toBe('John');
+    expect(getUser.lastName).toBe('Doe');
+    expect(getUser.username).toBe('johndoe');
+    expect(getUser.email).toBe('johndoe@mail.com');
+    expect(getUser.role).toBe(roleEnum.USER);
+  });
+
+  it('should throw error if username does not match context user', async () => {
+    const { errors } = await query({
+      query: GET_USER,
+      variables: {
+        username: 'joebloggs'
+      }
+    });
+    expect(errors[0].message).toBe(errorMessageEnum.NO_PERMISSION);
+  });
+});
+
+describe('Validate Username Availability', () => {
+  const VALIDATE_USERNAME_AVAILABILITY = gql`
+    query validateUsernameAvailability($username: String!) {
+      validateUsernameAvailability(username: $username)
+    }
+  `;
+
+  beforeAll(async () => {
+    ({ query } = await setUp());
+    await Promise.all(
+      Object.keys(models).map(key => models[key].deleteMany({}))
+    );
+    await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password'
+    });
+  });
+
+  afterAll(async () => {
+    await tearDown();
+  });
+
+  it('should return true if username is available', async () => {
+    const {
+      data: { validateUsernameAvailability }
+    } = await query({
+      query: VALIDATE_USERNAME_AVAILABILITY,
+      variables: {
+        username: 'joebloggs'
+      }
+    });
+    expect(validateUsernameAvailability).toBe(true);
+  });
+
+  it('should return false if username is already registered', async () => {
+    const {
+      data: { validateUsernameAvailability }
+    } = await query({
+      query: VALIDATE_USERNAME_AVAILABILITY,
+      variables: {
+        username: 'johndoe'
+      }
+    });
+    expect(validateUsernameAvailability).toBe(false);
+  });
+});
+
+describe('Validate Email Availability', () => {
+  const VALIDATE_EMAIL_AVAILABILITY = gql`
+    query validateEmailAvailability($email: String!) {
+      validateEmailAvailability(email: $email)
+    }
+  `;
+
+  beforeAll(async () => {
+    ({ query } = await setUp());
+    await Promise.all(
+      Object.keys(models).map(key => models[key].deleteMany({}))
+    );
+    await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password'
+    });
+  });
+
+  afterAll(async () => {
+    await tearDown();
+  });
+
+  it('should return true if email is available', async () => {
+    const {
+      data: { validateEmailAvailability }
+    } = await query({
+      query: VALIDATE_EMAIL_AVAILABILITY,
+      variables: {
+        email: 'joebloggs@mail.com'
+      }
+    });
+    expect(validateEmailAvailability).toBe(true);
+  });
+
+  it('should return false if email is already registered', async () => {
+    const {
+      data: { validateEmailAvailability }
+    } = await query({
+      query: VALIDATE_EMAIL_AVAILABILITY,
+      variables: {
+        email: 'johndoe@mail.com'
+      }
+    });
+    expect(validateEmailAvailability).toBe(false);
+  });
+});
 
 // TODO: user, email and password validation
 describe('Register User', () => {
@@ -24,11 +262,7 @@ describe('Register User', () => {
   `;
 
   beforeAll(async () => {
-    try {
-      ({ mutate } = await setUp());
-    } catch (error) {
-      console.error(error);
-    }
+    ({ mutate } = await setUp());
   });
 
   beforeEach(async () => {
@@ -38,11 +272,7 @@ describe('Register User', () => {
   });
 
   afterAll(async () => {
-    try {
-      await tearDown();
-    } catch (error) {
-      console.error(error);
-    }
+    await tearDown();
   });
 
   it('should create user', async () => {
@@ -117,7 +347,7 @@ describe('Register User', () => {
       mutation: REGISTER_USER,
       variables: {
         user: {
-          username: 'username',
+          username: 'joebloggs',
           email: 'johndoe@mail.com',
           password: 'password'
         }
@@ -145,33 +375,25 @@ describe('Update User', () => {
   `;
 
   beforeAll(async () => {
-    try {
-      ({ mutate } = await setUp());
-    } catch (error) {
-      console.error(error);
-    }
+    ({ mutate } = await setUp());
   });
 
   beforeEach(async () => {
     await Promise.all(
       Object.keys(models).map(key => models[key].deleteMany({}))
     );
-  });
-
-  afterAll(async () => {
-    try {
-      await tearDown();
-    } catch (error) {
-      console.error(error);
-    }
-  });
-
-  it('should update user', async () => {
     await models.User.create({
       username: 'johndoe',
       email: 'johndoe@mail.com',
       password: 'password'
     });
+  });
+
+  afterAll(async () => {
+    await tearDown();
+  });
+
+  it('should update user', async () => {
     await mutate({
       mutation: UPDATE_USER,
       variables: {
@@ -194,11 +416,6 @@ describe('Update User', () => {
   });
 
   it('should return user', async () => {
-    await models.User.create({
-      username: 'johndoe',
-      email: 'johndoe@mail.com',
-      password: 'password'
-    });
     const {
       data: { updateUser }
     } = await mutate({
@@ -224,11 +441,7 @@ describe('Update User', () => {
   });
 
   it('should not update password if no password is provided', async () => {
-    const user = await models.User.create({
-      username: 'johndoe',
-      email: 'johndoe@mail.com',
-      password: 'password'
-    });
+    const user = await models.User.findOne({ username: 'johndoe' });
     await mutate({
       mutation: UPDATE_USER,
       variables: {
@@ -244,45 +457,33 @@ describe('Update User', () => {
   });
 
   it('should hash and save new password', async () => {
-    await models.User.create({
-      username: 'johndoe',
-      email: 'johndoe@mail.com',
-      password: 'password'
-    });
     await mutate({
       mutation: UPDATE_USER,
       variables: {
         user: {
           username: 'johndoe',
           email: 'johndoe@mail.com',
-          password: 'newPassword'
+          password: '12345678'
         },
         oldPassword: 'password'
       }
     });
     const user = await models.User.findOne({ username: 'johndoe' });
-    expect(await bcrypt.compare('newPassword', user.password)).toBe(true);
+    expect(await bcrypt.compare('12345678', user.password)).toBe(true);
   });
 
   it('should throw error if password is incorrect', async () => {
-    await models.User.create({
-      username: 'johndoe',
-      email: 'johndoe@mail.com',
-      password: 'password'
-    });
     const { errors } = await mutate({
       mutation: UPDATE_USER,
       variables: {
         user: {
-          firstName: 'John',
-          lastName: 'Doe',
           username: 'johndoe',
           email: 'johndoe@mail.com'
         },
-        oldPassword: 'incorrectPassword'
+        oldPassword: '12345678'
       }
     });
-    expect(errors[0].message).toBe(errorMessageEnum.AUTH);
+    expect(errors[0].message).toBe(errorMessageEnum.AUTH_FAILED);
   });
 });
 
@@ -303,11 +504,7 @@ describe('Delete User', () => {
   `;
 
   beforeAll(async () => {
-    try {
-      ({ mutate } = await setUp());
-    } catch (error) {
-      console.error(error);
-    }
+    ({ mutate } = await setUp());
   });
 
   beforeEach(async () => {
@@ -317,11 +514,7 @@ describe('Delete User', () => {
   });
 
   afterAll(async () => {
-    try {
-      await tearDown();
-    } catch (error) {
-      console.error(error);
-    }
+    await tearDown();
   });
 
   it('should delete user', async () => {
@@ -334,9 +527,7 @@ describe('Delete User', () => {
     });
     await mutate({
       mutation: DELETE_USER,
-      variables: {
-        password: 'password'
-      }
+      variables: { password: 'password' }
     });
     const user = await models.User.findOne({ username: 'johndoe' });
     expect(user).toBeNull();
@@ -354,9 +545,7 @@ describe('Delete User', () => {
       data: { deleteUser }
     } = await mutate({
       mutation: DELETE_USER,
-      variables: {
-        password: 'password'
-      }
+      variables: { password: 'password' }
     });
     expect(deleteUser.token).toBeNull();
     expect(deleteUser.firstName).toBe('John');
@@ -369,10 +558,8 @@ describe('Delete User', () => {
   it('should throw error if password is incorrect', async () => {
     const { errors } = await mutate({
       mutation: DELETE_USER,
-      variables: {
-        password: 'incorrectPassword'
-      }
+      variables: { password: '12345678' }
     });
-    expect(errors[0].message).toBe(errorMessageEnum.AUTH);
+    expect(errors[0].message).toBe(errorMessageEnum.AUTH_FAILED);
   });
 });

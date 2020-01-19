@@ -4,7 +4,8 @@ export const roleEnum = {
 };
 
 export const errorMessageEnum = {
-  AUTH: 'Failed to authenticate user',
+  AUTH_FAILED: 'Failed to authenticate user',
   EMAIL_TAKEN: 'Email is already registered',
+  NO_PERMISSION: 'Permission is not granted',
   USERNAME_TAKEN: 'Username is already registered'
 };

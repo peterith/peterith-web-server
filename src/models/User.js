@@ -39,15 +39,8 @@ userSchema.methods.convertPasswordToHash = async function() {
 };
 
 userSchema.pre('validate', async function() {
-  await this.convertPasswordToHash();
-});
-
-userSchema.pre('findOneAndUpdate', async function() {
-  if (this.getUpdate().password) {
-    this.getUpdate().password = await bcrypt.hash(
-      this.getUpdate().password,
-      Number(process.env.SALT_ROUNDS)
-    );
+  if (this.isModified('password')) {
+    await this.convertPasswordToHash();
   }
 });
 

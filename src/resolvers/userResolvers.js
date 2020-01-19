@@ -4,8 +4,7 @@ import { errorMessageEnum } from '../utils/enums';
 export default {
   Query: {
     login: async (_parent, { user: { username, password } }, { db }, _info) => {
-      await authenticateUser(username, password, db);
-      const user = await db.User.findOne({ username });
+      const user = await authenticateUser(username, password, db);
       user.token = generateUserToken(username);
       return user;
     },
@@ -17,9 +16,9 @@ export default {
     ) => ((await db.User.findOne({ username })) ? false : true),
     validateEmailAvailability: async (_parent, { email }, { db }, _info) =>
       (await db.User.findOne({ email })) ? false : true,
-    getUser: async (_parent, { username }, { user: contextUser }, _info) => {
+    getUser: (_parent, { username }, { user: contextUser, db }, _info) => {
       if (username !== contextUser) {
-        throw 'You do not have the permission to access this page.';
+        throw new Error(errorMessageEnum.NO_PERMISSION);
       }
       return db.User.findOne({ username });
     }
@@ -43,12 +42,9 @@ export default {
       { user: contextUser, db },
       _info
     ) => {
-      await authenticateUser(contextUser, oldPassword, db);
-      const result = await db.User.findOneAndUpdate(
-        { username: contextUser },
-        user,
-        { new: true, runValidators: true }
-      );
+      const result = await authenticateUser(contextUser, oldPassword, db);
+      Object.assign(result, user);
+      await result.save();
       result.token = generateUserToken(user.username);
       return result;
     },
