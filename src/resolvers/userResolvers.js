@@ -1,182 +1,56 @@
-import models from '../models';
-import bcrypt from 'bcrypt';
-import { authenticateUser, generateUserToken } from '../utils/authentications';
+import { authenticateUser, generateUserToken } from '../utils/authentication';
+import { errorMessageEnum } from '../utils/enums';
 
 export default {
   Query: {
-    login: async (_parent, { user }, _context, _info) => {
-      const { username, password } = user;
-      try {
-        await authenticateUser(models.User, username, password);
-
-        return {
-          success: true,
-          message: 'User login successfully',
-          username,
-          token: generateUserToken(username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+    login: async (_parent, { user: { username, password } }, { db }, _info) => {
+      const user = await authenticateUser(username, password, db);
+      user.token = generateUserToken(username);
+      return user;
     },
     validateUsernameAvailability: async (
       _parent,
       { username },
-      _context,
+      { db },
       _info
-    ) => {
-      try {
-        const user = await models.User.findOne({
-          username
-        });
-
-        if (user) {
-          throw 'Username is already registered';
-        }
-
-        return {
-          success: true,
-          message: 'Username is not registered'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
+    ) => ((await db.User.findOne({ username })) ? false : true),
+    validateEmailAvailability: async (_parent, { email }, { db }, _info) =>
+      (await db.User.findOne({ email })) ? false : true,
+    getUser: (_parent, { username }, { user: contextUser, db }, _info) => {
+      if (username !== contextUser) {
+        throw new Error(errorMessageEnum.NO_PERMISSION);
       }
-    },
-    validateEmailAvailability: async (_parent, { email }, _context, _info) => {
-      try {
-        const user = await models.User.findOne({
-          email
-        });
-
-        if (user) {
-          throw 'Email is already registered';
-        }
-
-        return {
-          success: true,
-          message: 'Email is not registered'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
-    },
-    getUser: async (_parent, { username }, context, _info) => {
-      try {
-        if (username !== context.username) {
-          throw 'You do not have the permission to access this page.';
-        }
-
-        const user = await models.User.findOne({ username });
-
-        if (user) {
-          return {
-            success: true,
-            message: 'User retrieve successfully',
-            user
-          };
-        } else {
-          throw 'Failed to retrieve user';
-        }
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+      return db.User.findOne({ username });
     }
   },
 
   Mutation: {
-    registerUser: async (_parent, { user }, _context, _info) => {
-      try {
-        let existedUser = await models.User.findOne({
-          username: user.username
-        });
-
-        if (existedUser) {
-          throw 'Username is already registered';
-        }
-
-        existedUser = await models.User.findOne({
-          email: user.email
-        });
-
-        if (existedUser) {
-          throw 'Email is already registered';
-        }
-
-        user.password = await bcrypt.hash(
-          user.password,
-          Number(process.env.SALT_ROUNDS)
-        );
-        await models.User.create(user);
-
-        return {
-          success: true,
-          message: 'User created successfully',
-          username: user.username,
-          token: generateUserToken(user.username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
+    registerUser: async (_parent, { user }, { db }, _info) => {
+      if (await db.User.findOne({ username: user.username })) {
+        throw new Error(errorMessageEnum.USERNAME_TAKEN);
       }
+      if (await db.User.findOne({ email: user.email })) {
+        throw new Error(errorMessageEnum.EMAIL_TAKEN);
+      }
+      const result = await db.User.create(user);
+      result.token = generateUserToken(user.username);
+      return result;
     },
-    updateUser: async (_parent, args, { username }, _info) => {
-      const { oldPassword, ...user } = args.user;
-      try {
-        await authenticateUser(models.User, username, oldPassword);
-
-        if (user.password) {
-          user.password = await bcrypt.hash(
-            user.password,
-            Number(process.env.SALT_ROUNDS)
-          );
-        } else {
-          delete user.password;
-        }
-
-        await models.User.findOneAndUpdate({ username }, user);
-
-        return {
-          success: true,
-          message: 'User updated successfully',
-          username: user.username,
-          token: generateUserToken(user.username)
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+    updateUser: async (
+      _parent,
+      { user, oldPassword },
+      { user: contextUser, db },
+      _info
+    ) => {
+      const result = await authenticateUser(contextUser, oldPassword, db);
+      Object.assign(result, user);
+      await result.save();
+      result.token = generateUserToken(user.username);
+      return result;
     },
-    deleteUser: async (_parent, { password }, { username }, _info) => {
-      try {
-        await authenticateUser(models.User, username, password);
-        await models.User.deleteOne({ username });
-
-        return {
-          success: true,
-          message: 'User deleted successfully'
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: error
-        };
-      }
+    deleteUser: async (_parent, { password }, { user, db }, _info) => {
+      await authenticateUser(user, password, db);
+      return db.User.findOneAndDelete({ username: user });
     }
   }
 };

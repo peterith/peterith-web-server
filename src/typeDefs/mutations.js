@@ -2,8 +2,8 @@ import { gql } from 'apollo-server-express';
 
 export default gql`
   type Mutation {
-    registerUser(user: UserInput!): TokenResponse!
-    updateUser(user: UserInput!): TokenResponse!
-    deleteUser(password: String!): Response!
+    registerUser(user: UserInput!): User!
+    updateUser(user: UserInput!, oldPassword: String!): User!
+    deleteUser(password: String!): User!
   }
 `;

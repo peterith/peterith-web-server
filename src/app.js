@@ -2,45 +2,38 @@ import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
-import resolvers from './resolvers';
+import { createContext } from './utils/apolloServer';
 import typeDefs from './typeDefs';
+import resolvers from './resolvers';
 
 dotenv.config();
+const { DB_SCHEME, DB_USER, DB_PASS, DB_HOST, DB_CLUSTER, PORT } = process.env;
 
-mongoose.connect(
-  `${process.env.DB_SCHEME}://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_CLUSTER}`,
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
-  }
+try {
+  mongoose.connect(
+    `${DB_SCHEME}://${DB_USER}:${DB_PASS}@${DB_HOST}/${DB_CLUSTER}`,
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      useFindAndModify: false
+    }
+  );
+} catch (error) {
+  console.error(error);
+}
+mongoose.connection.on('connected', () =>
+  console.log(`Connected to MongoDB at ${DB_HOST} (${DB_CLUSTER})`)
 );
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'Connection error:'));
+mongoose.connection.on('error', error => console.error(error));
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => {
-    const authHeader = req.headers.authorization;
-
-    if (authHeader) {
-      try {
-        const token = authHeader.split(' ')[1];
-        const username = jwt.verify(token, process.env.SECRET_KEY).sub;
-
-        return { username };
-      } catch (error) {
-        return {};
-      }
-    }
-  }
+  context: ({ req }) => createContext(req, models)
 });
 
 const app = express();
-const port = process.env.PORT || 4000;
-
 server.applyMiddleware({ app });
-app.listen(port);
+app.listen(PORT, () => {
+  console.log(`Server ready at http://localhost:${PORT}/${server.graphqlPath}`);
+});
