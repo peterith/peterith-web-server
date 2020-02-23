@@ -8,37 +8,34 @@ const userSchema = new mongoose.Schema(
     lastName: String,
     username: {
       type: String,
-      required: true
+      required: true,
     },
     email: {
       type: String,
-      required: true
+      required: true,
     },
     password: {
       type: String,
       required: true,
-      match: /^\$2[ayb]\$.{56}$/
+      match: /^\$2[ayb]\$.{56}$/,
     },
     role: {
       type: String,
       required: true,
       enum: Object.values(roleEnum),
-      default: roleEnum.USER
-    }
+      default: roleEnum.USER,
+    },
   },
   {
-    timestamps: true
-  }
+    timestamps: true,
+  },
 );
 
-userSchema.methods.convertPasswordToHash = async function() {
-  this.password = await bcrypt.hash(
-    this.password,
-    Number(process.env.SALT_ROUNDS)
-  );
+userSchema.methods.convertPasswordToHash = async function convertPasswordToHash() {
+  this.password = await bcrypt.hash(this.password, Number(process.env.SALT_ROUNDS));
 };
 
-userSchema.pre('validate', async function() {
+userSchema.pre('validate', async function pre() {
   if (this.isModified('password')) {
     await this.convertPasswordToHash();
   }
