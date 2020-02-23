@@ -1,5 +1,6 @@
 {
-  "extends": ["airbnb-base", "prettier"],
-  "plugins": ["jest", "prettier"],
-  "rules": {}
+  "extends": ["airbnb-base", "plugin:jest/recommended", "prettier"],
+  "rules": {
+    "no-console": "off"
+  }
 }
