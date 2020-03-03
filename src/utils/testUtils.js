@@ -3,18 +3,24 @@ import mongoose from 'mongoose';
 import { ApolloServer } from 'apollo-server-express';
 import { createTestClient } from 'apollo-server-testing';
 import models from '../models';
-import typeDefs from '../typeDefs';
-import resolvers from '../resolvers';
+import { typeDefs, resolvers } from '../graphql';
 
 export const setUp = async () => {
   dotenv.config();
   await setUpTestDatabase();
+  await models.User.create({
+    firstName: 'John',
+    lastName: 'Doe',
+    username: 'johndoe',
+    email: 'johndoe@mail.com',
+    password: 'password',
+  });
   return createTestClient(
     new ApolloServer({
       typeDefs,
       resolvers,
-      context: () => ({ user: 'johndoe', db: models })
-    })
+      context: { contextUser: await models.User.findOne({ username: 'johndoe' }), db: models },
+    }),
   );
 };
 
@@ -22,11 +28,11 @@ export const setUpTestDatabase = async () => {
   await mongoose.connect('mongodb://localhost/test', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    useFindAndModify: false
+    useFindAndModify: false,
   });
 };
 
 export const tearDown = async () => {
-  await Promise.all(Object.keys(models).map(key => models[key].deleteMany({})));
+  await Promise.all(Object.keys(models).map((key) => models[key].deleteMany({})));
   await mongoose.connection.close();
 };

@@ -1,5 +1,4 @@
+import Story from './Story';
 import User from './User';
 
-export default {
-  User
-};
+export default { Story, User };

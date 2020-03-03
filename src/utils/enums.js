@@ -1,9 +1,4 @@
-export const roleEnum = {
-  ADMIN: 'ADMIN',
-  USER: 'USER',
-};
-
-export const errorMessageEnum = {
+export const ErrorMessageEnum = {
   AUTH_FAILED: 'Failed to authenticate user.',
   EMAIL_TAKEN: 'Email is already registered.',
   EMAIL_INVALID: 'You have entered an invalid email.',
@@ -13,3 +8,11 @@ export const errorMessageEnum = {
   USERNAME_TAKEN: 'Username is already registered.',
   USERNAME_INVALID: 'You have entered an invalid username.',
 };
+
+export const P = { ABOUT: 'ABOUT' };
+
+export const RoleEnum = { ADMIN: 'ADMIN', USER: 'USER' };
+
+export const StoryContentTypeEnum = { LIST: 'LIST', TEXT: 'TEXT' };
+
+export const StoryTypeEnum = { INTERNAL: 'INTERNAL' };
