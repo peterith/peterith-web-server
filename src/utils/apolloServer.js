@@ -1,15 +1,19 @@
 import jwt from 'jsonwebtoken';
 
-const getUserFromRequestHeaders = ({ authorization }) => {
+const resolveUserFromRequestHeaders = async ({ authorization }, { User }) => {
+  let user = null;
   try {
-    const token = authorization.split(' ')[1];
-    return jwt.verify(token, process.env.SECRET_KEY).sub;
+    if (authorization) {
+      const token = authorization.split(' ')[1];
+      user = await User.findOne({ username: jwt.verify(token, process.env.SECRET_KEY).sub });
+    }
   } catch (error) {
-    return null;
+    console.error(error);
   }
+  return user;
 };
 
-export const createContext = ({ headers }, db) => ({
-  user: getUserFromRequestHeaders(headers),
-  db
+export const createContext = async ({ headers }, db) => ({
+  contextUser: await resolveUserFromRequestHeaders(headers, db),
+  db,
 });
