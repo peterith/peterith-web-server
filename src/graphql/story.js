@@ -73,17 +73,8 @@ export const storyResolvers = {
   },
 
   Mutation: {
-    addStory: (_, { story }, { contextUser, db }) => {
-      // if (story.type === StoryTypeEnum.INTERNAL && contextUser.role !== RoleEnum.ADMIN) {
-      //   throw new ForbiddenError(ErrorMessageEnum.NO_PERMISSION);
-      // }
+    addStory: (_, { story }, { db }) => {
       return db.Story.create(story);
     },
-    // updateAboutStory: (_, __, { contextUser, db }) => {
-    //   if (contextUser.role !== RoleEnum.ADMIN) {
-    //     throw ForbiddenError(ErrorMessageEnum.NO_PERMISSION);
-    //   }
-    //   return db.Story.find({ storyType: StoryTypeEnum.INTERNAL, tags: 'about' });
-    // },
   },
 };

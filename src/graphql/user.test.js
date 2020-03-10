@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-express';
 import bcrypt from 'bcrypt';
-import { setUp, tearDown } from '../utils/testUtils';
+import { setUp, tearDown } from '../utils/test';
 import models from '../models';
 import { RoleEnum } from '../utils/enums';
 
@@ -11,6 +11,7 @@ describe('Login', () => {
   const LOGIN = gql`
     query Login($user: UserInput!) {
       login(user: $user) {
+        id
         token
         firstName
         lastName
@@ -42,8 +43,17 @@ describe('Login', () => {
   it('should return user', async () => {
     const {
       data: { login },
-    } = await query({ query: LOGIN, variables: { user: { username: 'johndoe', password: 'password' } } });
+    } = await query({
+      query: LOGIN,
+      variables: {
+        user: {
+          username: 'johndoe',
+          password: 'password',
+        },
+      },
+    });
     const user = {
+      id: expect.any(String),
       token: expect.stringMatching(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/),
       firstName: 'John',
       lastName: 'Doe',
@@ -59,7 +69,12 @@ describe('Login', () => {
   it('should throw error is username is incorrect', async () => {
     const { errors } = await query({
       query: LOGIN,
-      variables: { user: { username: 'joebloggs', password: 'password' } },
+      variables: {
+        user: {
+          username: 'joebloggs',
+          password: 'password',
+        },
+      },
     });
     expect(errors[0].extensions.code).toBe('UNAUTHENTICATED');
   });
@@ -77,6 +92,7 @@ describe('Get User', () => {
   const GET_USER = gql`
     query GetUser($username: String!) {
       getUser(username: $username) {
+        id
         token
         firstName
         lastName
@@ -108,8 +124,14 @@ describe('Get User', () => {
   it('should return user', async () => {
     const {
       data: { getUser },
-    } = await query({ query: GET_USER, variables: { username: 'johndoe' } });
+    } = await query({
+      query: GET_USER,
+      variables: {
+        username: 'johndoe',
+      },
+    });
     const user = {
+      id: expect.any(String),
       token: null,
       firstName: 'John',
       lastName: 'Doe',
@@ -123,7 +145,12 @@ describe('Get User', () => {
   });
 
   it('should throw error if username does not match context user', async () => {
-    const { errors } = await query({ query: GET_USER, variables: { username: 'joebloggs' } });
+    const { errors } = await query({
+      query: GET_USER,
+      variables: {
+        username: 'joebloggs',
+      },
+    });
     expect(errors[0].extensions.code).toBe('FORBIDDEN');
   });
 });
@@ -132,6 +159,7 @@ describe('Register User', () => {
   const REGISTER_USER = gql`
     mutation RegisterUser($user: UserInput!) {
       registerUser(user: $user) {
+        id
         token
         firstName
         lastName
@@ -159,10 +187,19 @@ describe('Register User', () => {
   it('should create user', async () => {
     await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoe@mail.com', password: 'password' } },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+          password: 'password',
+        },
+      },
     });
-    const result = await models.User.findOne({ username: 'johndoe' });
+    const result = await models.User.findOne({
+      username: 'johndoe',
+    });
     const user = {
+      id: expect.any(String),
       username: 'johndoe',
       email: 'johndoe@mail.com',
       password: expect.stringMatching(/^\$2[ayb]\$.{56}$/),
@@ -178,9 +215,16 @@ describe('Register User', () => {
       data: { registerUser },
     } = await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoe@mail.com', password: 'password' } },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+          password: 'password',
+        },
+      },
     });
     const user = {
+      id: expect.any(String),
       token: expect.stringMatching(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/),
       firstName: null,
       lastName: null,
@@ -196,7 +240,13 @@ describe('Register User', () => {
   it('should throw error if username is invalid', async () => {
     const { errors } = await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'john', email: 'johndoe@mail.com', password: 'password' } },
+      variables: {
+        user: {
+          username: 'john',
+          email: 'johndoe@mail.com',
+          password: 'password',
+        },
+      },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
   });
@@ -204,7 +254,13 @@ describe('Register User', () => {
   it('should throw error if email is invalid', async () => {
     const { errors } = await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoemail.com', password: 'password' } },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoemail.com',
+          password: 'password',
+        },
+      },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
   });
@@ -212,26 +268,50 @@ describe('Register User', () => {
   it('should throw error if password is invalid', async () => {
     const { errors } = await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoemail.com', password: 'pass' } },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoemail.com',
+          password: 'pass',
+        },
+      },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
   });
 
   it('should throw error if username is already registered', async () => {
-    await models.User.create({ username: 'johndoe', email: 'johndoe@mail.com', password: 'password' });
+    await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password',
+    });
     const { errors } = await mutate({
       mutation: REGISTER_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoe@mail.com', password: 'password' } },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+          password: 'password',
+        },
+      },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
   });
 
   it('should throw error if email is already registered', async () => {
-    await models.User.create({ username: 'johndoe', email: 'johndoe@mail.com', password: 'password' });
+    await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password',
+    });
     const { errors } = await mutate({
       mutation: REGISTER_USER,
       variables: {
-        user: { username: 'joebloggs', email: 'johndoe@mail.com', password: 'password' },
+        user: {
+          username: 'joebloggs',
+          email: 'johndoe@mail.com',
+          password: 'password',
+        },
       },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
@@ -240,8 +320,9 @@ describe('Register User', () => {
 
 describe('Update User', () => {
   const UPDATE_USER = gql`
-    mutation UpdateUser($user: UserInput!, $oldPassword: String!) {
-      updateUser(user: $user, oldPassword: $oldPassword) {
+    mutation UpdateUser($user: UserInput!) {
+      updateUser(user: $user) {
+        id
         token
         firstName
         lastName
@@ -260,8 +341,16 @@ describe('Update User', () => {
 
   beforeEach(async () => {
     await Promise.all(Object.keys(models).map((key) => models[key].deleteMany({})));
-    await models.User.create({ username: 'johndoe', email: 'johndoe@mail.com', password: 'password' });
-    await models.User.create({ username: 'joebloggs', email: 'joebloggs@mail.com', password: 'password' });
+    await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password',
+    });
+    await models.User.create({
+      username: 'joebloggs',
+      email: 'joebloggs@mail.com',
+      password: 'password',
+    });
   });
 
   afterAll(async () => {
@@ -272,12 +361,19 @@ describe('Update User', () => {
     await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { firstName: 'John', lastName: 'Doe', username: 'johndoe', email: 'johndoe@mail.com' },
-        oldPassword: 'password',
+        user: {
+          firstName: 'John',
+          lastName: 'Doe',
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+        },
       },
     });
-    const result = await models.User.findOne({ username: 'johndoe' });
+    const result = await models.User.findOne({
+      username: 'johndoe',
+    });
     const user = {
+      id: expect.any(String),
       firstName: 'John',
       lastName: 'Doe',
       username: 'johndoe',
@@ -296,11 +392,16 @@ describe('Update User', () => {
     } = await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { firstName: 'John', lastName: 'Doe', username: 'johndoe', email: 'johndoe@mail.com' },
-        oldPassword: 'password',
+        user: {
+          firstName: 'John',
+          lastName: 'Doe',
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+        },
       },
     });
     const user = {
+      id: expect.any(String),
       token: expect.stringMatching(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/),
       firstName: 'John',
       lastName: 'Doe',
@@ -314,12 +415,21 @@ describe('Update User', () => {
   });
 
   it('should not update password if no password is provided', async () => {
-    const user = await models.User.findOne({ username: 'johndoe' });
+    const user = await models.User.findOne({
+      username: 'johndoe',
+    });
     await mutate({
       mutation: UPDATE_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoe@mail.com' }, oldPassword: 'password' },
+      variables: {
+        user: {
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+        },
+      },
     });
-    const updatedUser = await models.User.findOne({ username: 'johndoe' });
+    const updatedUser = await models.User.findOne({
+      username: 'johndoe',
+    });
     expect(updatedUser.password).toBe(user.password);
   });
 
@@ -327,11 +437,16 @@ describe('Update User', () => {
     await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { username: 'johndoe', email: 'johndoe@mail.com', password: '12345678' },
-        oldPassword: 'password',
+        user: {
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
+          password: '12345678',
+        },
       },
     });
-    const user = await models.User.findOne({ username: 'johndoe' });
+    const user = await models.User.findOne({
+      username: 'johndoe',
+    });
     expect(await bcrypt.compare('12345678', user.password)).toBe(true);
   });
 
@@ -339,8 +454,10 @@ describe('Update User', () => {
     const { errors } = await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { username: 'john', email: 'johndoe@mail.com' },
-        oldPassword: 'password',
+        user: {
+          username: 'john',
+          email: 'johndoe@mail.com',
+        },
       },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
@@ -350,27 +467,23 @@ describe('Update User', () => {
     const { errors } = await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { username: 'johndoe', email: 'johndoemail.com' },
-        oldPassword: 'password',
+        user: {
+          username: 'johndoe',
+          email: 'johndoemail.com',
+        },
       },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
-  });
-
-  it('should throw error if password is incorrect', async () => {
-    const { errors } = await mutate({
-      mutation: UPDATE_USER,
-      variables: { user: { username: 'johndoe', email: 'johndoe@mail.com' }, oldPassword: '12345678' },
-    });
-    expect(errors[0].extensions.code).toBe('UNAUTHENTICATED');
   });
 
   it('should throw error if username is already registered', async () => {
     const { errors } = await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { username: 'joebloggs', email: 'johndoe@mail.com' },
-        oldPassword: 'password',
+        user: {
+          username: 'joebloggs',
+          email: 'johndoe@mail.com',
+        },
       },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
@@ -380,8 +493,10 @@ describe('Update User', () => {
     const { errors } = await mutate({
       mutation: UPDATE_USER,
       variables: {
-        user: { username: 'johndoe', email: 'joebloggs@mail.com' },
-        oldPassword: 'password',
+        user: {
+          username: 'johndoe',
+          email: 'joebloggs@mail.com',
+        },
       },
     });
     expect(errors[0].extensions.code).toBe('BAD_USER_INPUT');
@@ -392,6 +507,8 @@ describe('Delete User', () => {
   const DELETE_USER = gql`
     mutation DeleteUser($password: String!) {
       deleteUser(password: $password) {
+        id
+        token
         firstName
         lastName
         username
@@ -423,8 +540,15 @@ describe('Delete User', () => {
       email: 'johndoe@mail.com',
       password: 'password',
     });
-    await mutate({ mutation: DELETE_USER, variables: { password: 'password' } });
-    const user = await models.User.findOne({ username: 'johndoe' });
+    await mutate({
+      mutation: DELETE_USER,
+      variables: {
+        password: 'password',
+      },
+    });
+    const user = await models.User.findOne({
+      username: 'johndoe',
+    });
     expect(user).toBeNull();
   });
 
@@ -438,8 +562,15 @@ describe('Delete User', () => {
     });
     const {
       data: { deleteUser },
-    } = await mutate({ mutation: DELETE_USER, variables: { password: 'password' } });
+    } = await mutate({
+      mutation: DELETE_USER,
+      variables: {
+        password: 'password',
+      },
+    });
     const user = {
+      id: expect.any(String),
+      token: null,
       firstName: 'John',
       lastName: 'Doe',
       username: 'johndoe',
@@ -452,7 +583,12 @@ describe('Delete User', () => {
   });
 
   it('should throw error if password is incorrect', async () => {
-    const { errors } = await mutate({ mutation: DELETE_USER, variables: { password: '12345678' } });
+    const { errors } = await mutate({
+      mutation: DELETE_USER,
+      variables: {
+        password: '12345678',
+      },
+    });
     expect(errors[0].extensions.code).toBe('UNAUTHENTICATED');
   });
 });

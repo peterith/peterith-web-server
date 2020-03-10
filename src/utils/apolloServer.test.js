@@ -1,34 +1,35 @@
-import dotenv from 'dotenv';
 import models from '../models';
-import { setUpTestDatabase } from './testUtils';
+import { setUp, tearDown } from './test';
 import { createContext } from './apolloServer';
 import { generateUserToken } from './authentication';
 import { RoleEnum } from './enums';
 
 describe('Apollo Server', () => {
   beforeAll(async () => {
-    dotenv.config();
-    await setUpTestDatabase();
-    await Promise.all(Object.keys(models).map((key) => models[key].deleteMany({})));
-    await models.User.create({
-      firstName: 'John',
-      lastName: 'Doe',
-      username: 'johndoe',
-      email: 'johndoe@mail.com',
-      password: 'password',
-    });
+    await setUp();
+  });
+
+  afterAll(async () => {
+    await tearDown();
   });
 
   it('should return context', async () => {
     const token = generateUserToken('johndoe');
-    const req = { headers: { authorization: `bearer ${token}` } };
+    const req = {
+      headers: {
+        authorization: `bearer ${token}`,
+      },
+    };
     const context = {
       contextUser: {
+        id: expect.any(String),
         firstName: 'John',
         lastName: 'Doe',
         username: 'johndoe',
         email: 'johndoe@mail.com',
         role: RoleEnum.USER,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       },
       db: models,
     };
@@ -36,14 +37,28 @@ describe('Apollo Server', () => {
   });
 
   it('should return context with no user if no authorization header is provided', async () => {
-    const req = { headers: { authorization: null } };
-    const context = { contextUser: null, db: models };
+    const req = {
+      headers: {
+        authorization: null,
+      },
+    };
+    const context = {
+      contextUser: null,
+      db: models,
+    };
     expect(await createContext(req, models)).toEqual(context);
   });
 
   it('should return context with no user if token is malformed', async () => {
-    const req = { headers: { authorization: `bearer malformedToken` } };
-    const context = { contextUser: null, db: models };
+    const req = {
+      headers: {
+        authorization: `bearer malformedToken`,
+      },
+    };
+    const context = {
+      contextUser: null,
+      db: models,
+    };
     expect(await createContext(req, models)).toEqual(context);
   });
 });

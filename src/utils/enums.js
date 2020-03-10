@@ -1,3 +1,8 @@
+export const CalendarEventTypeEnum = {
+  FITNESS: 'FITNESS',
+  GENERAL: 'GENERAL',
+};
+
 export const ErrorMessageEnum = {
   AUTH_FAILED: 'Failed to authenticate user.',
   EMAIL_TAKEN: 'Email is already registered.',
@@ -9,10 +14,24 @@ export const ErrorMessageEnum = {
   USERNAME_INVALID: 'You have entered an invalid username.',
 };
 
-export const P = { ABOUT: 'ABOUT' };
+export const ExerciseEnum = {
+  BENCH_PRESS: 'BENCH_PRESS',
+  BICEP_CURL: 'BICEP_CURL',
+  CALF_RAISE: 'CALF_RAISE',
+  DEADLIFT: 'DEADLIFT',
+  SQUAT: 'SQUAT',
+  WEIGHTED_PULL_UP: 'WEIGHTED_PULL_UP',
+};
 
-export const RoleEnum = { ADMIN: 'ADMIN', USER: 'USER' };
+export const FitnessEventTypeEnum = {
+  WEIGHTLIFTING: 'WEIGHTLIFTING',
+};
 
-export const StoryContentTypeEnum = { LIST: 'LIST', TEXT: 'TEXT' };
+export const RoleEnum = {
+  ADMIN: 'ADMIN',
+  USER: 'USER',
+};
 
-export const StoryTypeEnum = { INTERNAL: 'INTERNAL' };
+export const StoryTypeEnum = {
+  INTERNAL: 'INTERNAL',
+};

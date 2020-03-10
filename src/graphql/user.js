@@ -12,7 +12,7 @@ export const userTypeDefs = gql`
 
   extend type Mutation {
     registerUser(user: UserInput!): User!
-    updateUser(user: UserInput!, oldPassword: String!): User!
+    updateUser(user: UserInput!): User!
     deleteUser(password: String!): User!
   }
 
@@ -24,8 +24,8 @@ export const userTypeDefs = gql`
     username: String
     email: String
     role: Role
-    createdAt: String
-    updatedAt: String
+    createdAt: Date
+    updatedAt: Date
   }
 
   enum Role {
@@ -78,20 +78,20 @@ export const userResolvers = {
       result.token = generateUserToken(user.username);
       return result;
     },
-    updateUser: async (_, { user: { password, ...user }, oldPassword }, { contextUser, db }) => {
+    updateUser: async (_, { user: { password, ...user } }, { contextUser, db }) => {
       if (!user.username.match(/^[a-zA-Z0-9]{6,20}$/)) {
         throw new UserInputError(ErrorMessageEnum.USERNAME_INVALID);
       }
       if (!user.email.includes('@')) {
         throw new UserInputError(ErrorMessageEnum.EMAIL_INVALID);
       }
-      const result = await authenticateUser(contextUser.username, oldPassword, db);
       if ((await db.User.findOne({ username: user.username })) && user.username !== contextUser.username) {
         throw new UserInputError(ErrorMessageEnum.USERNAME_TAKEN);
       }
       if ((await db.User.findOne({ email: user.email })) && user.email !== contextUser.email) {
         throw new UserInputError(ErrorMessageEnum.EMAIL_TAKEN);
       }
+      const result = await db.User.findOne({ username: contextUser.username });
       Object.assign(result, user);
       if (password) {
         if (!password.match(/^.{8,}$/)) {

@@ -1,23 +1,22 @@
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import { createContext } from './utils/apolloServer';
 import { typeDefs, resolvers } from './graphql';
 import models from './models';
-
-dotenv.config();
-const { DB_PREFIX, DB_CREDENTIALS, DB_HOST, DB_DATABASE, DB_OPTIONS, PORT } = process.env;
+import { generateUserToken } from './utils/authentication';
 
 try {
-  mongoose.connect(`${DB_PREFIX}://${DB_CREDENTIALS}${DB_HOST}/${DB_DATABASE}${DB_OPTIONS}`, {
+  mongoose.connect(`${process.env.DB_PREFIX}://${process.env.DB_HOST}`, {
+    user: process.env.DB_USER,
+    pass: process.env.DB_PASS,
+    dbName: process.env.DB_NAME,
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
   });
-  mongoose.set('debug', true);
   mongoose.connection.on('connected', () => {
-    console.log(`Connected to MongoDB at ${DB_HOST} (${DB_DATABASE})`);
+    console.log(`Connected to MongoDB at ${process.env.DB_HOST} (${process.env.DB_NAME})`);
   });
   mongoose.connection.on('error', (error) => console.error(error));
 } catch (error) {
@@ -28,10 +27,18 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => createContext(req, models),
+  playground: {
+    endpoint: 'graphql',
+    tabs: [
+      {
+        headers: [{ authorization: `Bearer ${generateUserToken('peterith')}` }],
+      },
+    ],
+  },
 });
 
 const app = express();
 server.applyMiddleware({ app });
-app.listen(PORT, () => {
-  console.log(`Server ready at http://localhost:${PORT}/${server.graphqlPath}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server ready at http://localhost:${process.env.PORT}/${server.graphqlPath}`);
 });
