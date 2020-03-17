@@ -4,14 +4,38 @@ import { RoleEnum } from '../utils/enums';
 
 const userSchema = new mongoose.Schema(
   {
-    firstName: { type: String, trim: true },
-    lastName: { type: String, trim: true },
-    username: { type: String, required: true, minlength: 6 },
-    email: { type: String, required: true },
-    password: { type: String, required: true, match: /^\$2[ayb]\$.{56}$/ },
-    role: { type: String, required: true, enum: Object.values(RoleEnum), default: RoleEnum.USER },
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      trim: true,
+    },
+    username: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
+    email: {
+      type: String,
+      required: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      match: /^\$2[ayb]\$.{56}$/,
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: Object.values(RoleEnum),
+      default: RoleEnum.USER,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
 userSchema.methods.convertPasswordToHash = async function convertPasswordToHash() {

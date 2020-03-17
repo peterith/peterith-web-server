@@ -5,7 +5,9 @@ const resolveUserFromRequestHeaders = async ({ authorization }, { User }) => {
   try {
     if (authorization) {
       const token = authorization.split(' ')[1];
-      user = await User.findOne({ username: jwt.verify(token, process.env.SECRET_KEY).sub });
+      user = await User.findOne({
+        username: jwt.verify(token, process.env.SECRET_KEY).sub,
+      });
     }
   } catch (error) {
     console.error(error);
