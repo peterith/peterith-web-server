@@ -34,7 +34,7 @@ const app = express();
 server.applyMiddleware({
   app,
   cors: {
-    origin: process.env_CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN,
   },
 });
 
