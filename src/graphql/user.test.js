@@ -1,6 +1,6 @@
 import { gql } from 'apollo-server-express';
 import bcrypt from 'bcrypt';
-import { setUp, tearDown } from '../utils/test';
+import { setUp, tearDown } from '../utils/testUtils';
 import models from '../models';
 import { RoleEnum } from '../utils/enums';
 

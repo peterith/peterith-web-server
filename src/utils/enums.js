@@ -6,7 +6,7 @@ export const CalendarEventTypeEnum = {
 export const ErrorMessageEnum = {
   AUTH_FAILED: 'Failed to authenticate user.',
   EMAIL_TAKEN: 'Email is already registered.',
-  EMAIL_INVALID: 'You have entered an invalid email.',
+  EMAIL_INVALID: 'You have entered an invalid email address.',
   LOGIN_FAILED: 'Incorrect username or password.',
   NO_PERMISSION: 'You have no permission.',
   PASSWORD_INVALID: 'You have entered an invalid password.',
@@ -34,4 +34,10 @@ export const RoleEnum = {
 
 export const StoryTypeEnum = {
   INTERNAL: 'INTERNAL',
+};
+
+export const TaskListEnum = {
+  TO_DO: 'TO_DO',
+  IN_PROGRESS: 'IN_PROGRESS',
+  DONE: 'DONE',
 };

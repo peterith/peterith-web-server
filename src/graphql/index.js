@@ -3,6 +3,7 @@ import { gql } from 'apollo-server-express';
 import { calendarEventTypeDefs, calendarEventResolvers } from './calendarEvent';
 import { customScalarTypeDefs, customScalarResolvers } from './customScalars';
 import { storyTypeDefs, storyResolvers } from './story';
+import { taskTypeDefs, taskResolvers } from './task';
 import { userTypeDefs, userResolvers } from './user';
 
 const query = gql`
@@ -15,6 +16,12 @@ const query = gql`
   }
 `;
 
-export const typeDefs = [calendarEventTypeDefs, customScalarTypeDefs, query, storyTypeDefs, userTypeDefs];
+export const typeDefs = [calendarEventTypeDefs, customScalarTypeDefs, query, storyTypeDefs, taskTypeDefs, userTypeDefs];
 
-export const resolvers = merge(calendarEventResolvers, customScalarResolvers, storyResolvers, userResolvers);
+export const resolvers = merge(
+  calendarEventResolvers,
+  customScalarResolvers,
+  storyResolvers,
+  taskResolvers,
+  userResolvers,
+);

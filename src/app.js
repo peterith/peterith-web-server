@@ -20,6 +20,10 @@ try {
   mongoose.connection.on('error', (error) => {
     console.error(error);
   });
+
+  if (process.env.NODE_ENV !== 'production') {
+    mongoose.set('debug', true);
+  }
 } catch (error) {
   console.error(error);
 }
@@ -27,7 +31,7 @@ try {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => createContext(req, models),
+  context: ({ req }) => createContext(req, models, mongoose),
 });
 
 const app = express();
