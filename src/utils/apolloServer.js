@@ -15,7 +15,8 @@ const resolveUserFromRequestHeaders = async ({ authorization }, { User }) => {
   return user;
 };
 
-export const createContext = async ({ headers }, db) => ({
+export const createContext = async ({ headers }, db, mongoose) => ({
   contextUser: await resolveUserFromRequestHeaders(headers, db),
   db,
+  mongoose,
 });

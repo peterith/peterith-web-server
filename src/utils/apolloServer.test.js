@@ -1,5 +1,6 @@
+import mongoose from 'mongoose';
 import models from '../models';
-import { setUp, tearDown } from './test';
+import { setUp, tearDown } from './testUtils';
 import { createContext } from './apolloServer';
 import { generateUserToken } from './authentication';
 import { RoleEnum } from './enums';
@@ -32,8 +33,9 @@ describe('Apollo Server', () => {
         updatedAt: expect.any(Date),
       },
       db: models,
+      mongoose,
     };
-    expect(await createContext(req, models)).toMatchObject(context);
+    expect(await createContext(req, models, mongoose)).toMatchObject(context);
   });
 
   it('should return context with no user if no authorization header is provided', async () => {
@@ -45,8 +47,9 @@ describe('Apollo Server', () => {
     const context = {
       contextUser: null,
       db: models,
+      mongoose,
     };
-    expect(await createContext(req, models)).toEqual(context);
+    expect(await createContext(req, models, mongoose)).toEqual(context);
   });
 
   it('should return context with no user if token is malformed', async () => {
@@ -58,7 +61,8 @@ describe('Apollo Server', () => {
     const context = {
       contextUser: null,
       db: models,
+      mongoose,
     };
-    expect(await createContext(req, models)).toEqual(context);
+    expect(await createContext(req, models, mongoose)).toEqual(context);
   });
 });

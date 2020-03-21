@@ -1,4 +1,5 @@
 import { gql } from 'apollo-server-express';
+import mongoose from 'mongoose';
 
 export const calendarEventTypeDefs = gql`
   extend type Query {
@@ -6,6 +7,7 @@ export const calendarEventTypeDefs = gql`
   }
   extend type Mutation {
     addCalendarEvent(calendarEvent: CalendarEventInput!): CalendarEvent!
+    deleteCalendarEvent(id: ID!): CalendarEvent!
   }
 
   type CalendarEvent {
@@ -42,8 +44,12 @@ export const calendarEventResolvers = {
   Query: {
     getCalendarEventsByDateRange: (_, { startDate, endDate }, { contextUser, db }) => {
       return db.CalendarEvent.find({
-        startDate: { $lte: endDate },
-        endDate: { $gte: startDate },
+        startDate: {
+          $lt: endDate,
+        },
+        endDate: {
+          $gte: startDate,
+        },
         user: contextUser.id,
       });
     },
@@ -56,6 +62,9 @@ export const calendarEventResolvers = {
         createdBy: contextUser.id,
         updatedBy: contextUser.id,
       });
+    },
+    deleteCalendarEvent: async (_, { id }, { db }) => {
+      return db.CalendarEvent.findByIdAndDelete(new mongoose.Types.ObjectId(id));
     },
   },
 };

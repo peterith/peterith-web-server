@@ -1,6 +1,5 @@
 import { gql } from 'apollo-server-express';
-import { setUp, tearDown } from '../utils/test';
-import models from '../models';
+import { setUp, tearDown } from '../utils/testUtils';
 import { CalendarEventTypeEnum } from '../utils/enums';
 
 let mutate;
