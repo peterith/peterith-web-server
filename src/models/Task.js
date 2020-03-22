@@ -8,17 +8,18 @@ const TaskSchema = new mongoose.Schema(
       required: true,
       ref: 'User',
     },
+    list: {
+      type: String,
+      required: true,
+      enum: Object.values(TaskListEnum),
+    },
     title: {
       type: String,
       required: true,
       trim: true,
       maxlength: 100,
     },
-    list: {
-      type: String,
-      required: true,
-      enum: Object.values(TaskListEnum),
-    },
+    deadline: Date,
     isPublic: {
       type: Boolean,
       required: true,

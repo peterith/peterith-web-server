@@ -4,6 +4,7 @@ export const taskTypeDefs = gql`
   extend type Query {
     getTasks: [Task]!
   }
+
   extend type Mutation {
     addTask(task: TaskInput!): Task!
     updateTask(id: ID!, task: TaskInput!): Task!
@@ -14,8 +15,9 @@ export const taskTypeDefs = gql`
   type Task {
     id: ID
     user: ID
-    title: String
     list: TaskListEnum
+    title: String
+    deadline: Date
     isPublic: Boolean
     order: Int
     createdBy: ID
@@ -31,8 +33,9 @@ export const taskTypeDefs = gql`
   }
 
   input TaskInput {
-    title: String
     list: TaskListEnum
+    title: String
+    deadline: Date
     isPublic: Boolean
     order: Int
   }
