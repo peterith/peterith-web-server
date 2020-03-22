@@ -33,7 +33,10 @@ const calendarEventSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    endDate: Date,
+    endDate: {
+      type: Date,
+      required: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
