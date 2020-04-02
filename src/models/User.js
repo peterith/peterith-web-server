@@ -4,22 +4,22 @@ import { RoleEnum } from '../utils/enums';
 
 const userSchema = new mongoose.Schema(
   {
-    firstName: {
+    fullName: {
       type: String,
-      trim: true,
-    },
-    lastName: {
-      type: String,
+      default: '',
       trim: true,
     },
     username: {
       type: String,
       required: true,
+      match: /^(?=.{6,36}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/,
       minlength: 6,
+      maxlength: 36,
     },
     email: {
       type: String,
       required: true,
+      maxlength: 254,
     },
     password: {
       type: String,
@@ -31,6 +31,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       enum: Object.values(RoleEnum),
       default: RoleEnum.USER,
+    },
+    fitbit: {
+      id: String,
+      accessToken: String,
+      refreshToken: String,
+      sleepGoal: Number,
     },
   },
   {

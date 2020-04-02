@@ -2,7 +2,7 @@ import { gql } from 'apollo-server-express';
 
 export const taskTypeDefs = gql`
   extend type Query {
-    getTasks: [Task]!
+    getTasks(userId: ID!): [Task]!
   }
 
   extend type Mutation {
@@ -43,43 +43,29 @@ export const taskTypeDefs = gql`
 
 export const taskResolvers = {
   Query: {
-    getTasks: (_, __, { contextUser, db }) => {
-      return db.Task.find({
-        user: contextUser.id,
-      }).sort({
-        order: 1,
-      });
+    getTasks: (_, { userId }, { user, models }) => {
+      const field = !user || user.id !== userId ? { isPublic: true } : {};
+      return models.Task.find({ ...field, user: userId }).sort({ order: 1 });
     },
   },
   Mutation: {
-    addTask: (_, { task }, { contextUser, db }) => {
-      return db.Task.create({
+    addTask: (_, { task }, { user, models }) => {
+      return models.Task.create({
         ...task,
-        user: contextUser.id,
-        createdBy: contextUser.id,
-        updatedBy: contextUser.id,
+        user: user.id,
+        createdBy: user.id,
+        updatedBy: user.id,
       });
     },
-    updateTask: (_, { id, task }, { contextUser, db }) => {
-      return db.Task.findByIdAndUpdate(
-        id,
-        {
-          ...task,
-          updatedBy: contextUser.id,
-        },
-        {
-          new: true,
-        },
-      );
+    updateTask: (_, { id, task }, { user, models }) => {
+      return models.Task.findByIdAndUpdate(id, { ...task, updatedBy: user.id }, { new: true });
     },
-    reorderTask: async (_, { id, newOrder }, { db, mongoose }) => {
-      const reorderedTask = await db.Task.findById(new mongoose.Types.ObjectId(id));
-      const list = await db.Task.find({
+    reorderTask: async (_, { id, newOrder }, { models, mongoose }) => {
+      const reorderedTask = await models.Task.findById(new mongoose.Types.ObjectId(id));
+      const list = await models.Task.find({
         list: reorderedTask.list,
         user: reorderedTask.user,
-      }).sort({
-        order: 1,
-      });
+      }).sort({ order: 1 });
       const highIndex = reorderedTask.order > newOrder ? reorderedTask.order : newOrder;
       const lowIndex = highIndex === reorderedTask.order ? newOrder : reorderedTask.order;
       const result = await Promise.all(
@@ -101,14 +87,12 @@ export const taskResolvers = {
       );
       return result.sort((a, b) => a.order - b.order);
     },
-    deleteTask: async (_, { id }, { db, mongoose }) => {
-      const deletedTask = await db.Task.findByIdAndDelete(new mongoose.Types.ObjectId(id));
-      const list = await db.Task.find({
+    deleteTask: async (_, { id }, { models, mongoose }) => {
+      const deletedTask = await models.Task.findByIdAndDelete(new mongoose.Types.ObjectId(id));
+      const list = await models.Task.find({
         list: deletedTask.list,
         user: deletedTask.user,
-      }).sort({
-        order: 1,
-      });
+      }).sort({ order: 1 });
       return Promise.all(
         list.map((task, index) => {
           if (task.order === index) {

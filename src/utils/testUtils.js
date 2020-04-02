@@ -1,32 +1,29 @@
-import mongoose from 'mongoose';
+import mongoose, { models } from 'mongoose';
 import { ApolloServer } from 'apollo-server-express';
 import { createTestClient } from 'apollo-server-testing';
-import models from '../models';
 import { typeDefs, resolvers } from '../graphql';
+import '../models';
 
-export const setUp = async () => {
+export const setUpDatabaseAndClient = async (user) => {
+  await setUpDatabase();
+  return setUpClient(user);
+};
+
+export const setUpDatabase = async () => {
   await mongoose.connect('mongodb://localhost/test', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
   });
-  await models.User.create({
-    firstName: 'John',
-    lastName: 'Doe',
-    username: 'johndoe',
-    email: 'johndoe@mail.com',
-    password: 'password',
-  });
+  await Promise.all(Object.keys(models).map((key) => models[key].deleteMany()));
+};
+
+export const setUpClient = (user) => {
   return createTestClient(
     new ApolloServer({
       typeDefs,
       resolvers,
-      context: {
-        contextUser: await models.User.findOne({
-          username: 'johndoe',
-        }),
-        db: models,
-      },
+      context: { user, models, mongoose },
     }),
   );
 };
