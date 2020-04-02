@@ -16,7 +16,10 @@ export const sessionOptions = {
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { sameSite: true },
+  cookie: {
+    secure: 'auto',
+    sameSite: true,
+  },
   store: new MongoStore({
     mongooseConnection: mongoose.connection,
     ttl: 14 * 24 * 60 * 60,
