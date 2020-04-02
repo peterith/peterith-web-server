@@ -42,29 +42,25 @@ export const calendarEventTypeDefs = gql`
 
 export const calendarEventResolvers = {
   Query: {
-    getCalendarEventsByDateRange: (_, { startDate, endDate }, { contextUser, db }) => {
-      return db.CalendarEvent.find({
-        startDate: {
-          $lt: endDate,
-        },
-        endDate: {
-          $gte: startDate,
-        },
-        user: contextUser.id,
+    getCalendarEventsByDateRange: (_, { userId, startDate, endDate }, { models }) => {
+      return models.CalendarEvent.find({
+        startDate: { $lt: endDate },
+        endDate: { $gte: startDate },
+        user: userId,
       });
     },
   },
   Mutation: {
-    addCalendarEvent: (_, { calendarEvent }, { contextUser, db }) => {
-      return db.CalendarEvent.create({
+    addCalendarEvent: (_, { calendarEvent }, { user, models }) => {
+      return models.CalendarEvent.create({
         ...calendarEvent,
-        user: contextUser.id,
-        createdBy: contextUser.id,
-        updatedBy: contextUser.id,
+        user: user.id,
+        createdBy: user.id,
+        updatedBy: user.id,
       });
     },
-    deleteCalendarEvent: async (_, { id }, { db }) => {
-      return db.CalendarEvent.findByIdAndDelete(new mongoose.Types.ObjectId(id));
+    deleteCalendarEvent: async (_, { id }, { models }) => {
+      return models.CalendarEvent.findByIdAndDelete(new mongoose.Types.ObjectId(id));
     },
   },
 };

@@ -67,14 +67,14 @@ export const storyTypeDefs = gql`
 
 export const storyResolvers = {
   Query: {
-    getAboutStory: (_, __, { db }) => {
-      return db.Story.findOne({ type: StoryTypeEnum.INTERNAL, tags: '__about' });
+    getAboutStory: (_, __, { models }) => {
+      return models.Story.findOne({ type: StoryTypeEnum.INTERNAL, tags: '__about' });
     },
   },
 
   Mutation: {
-    addStory: (_, { story }, { db }) => {
-      return db.Story.create(story);
+    addStory: (_, { story }, { models }) => {
+      return models.Story.create(story);
     },
   },
 };

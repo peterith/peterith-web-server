@@ -1,31 +1,33 @@
-import { gql, ForbiddenError, UserInputError } from 'apollo-server-express';
-import { authenticateUser, generateUserToken } from '../utils/authentication';
-import { ErrorMessageEnum } from '../utils/enums';
+import { gql, ForbiddenError, UserInputError, AuthenticationError } from 'apollo-server-express';
+import { authenticateUser } from '../utils/authentication';
+import { ErrorMessageEnum, RoleEnum } from '../utils/enums';
 
 export const userTypeDefs = gql`
   extend type Query {
-    login(user: UserInput!): User!
     getUser(username: String!): User!
-    validateUsernameAvailability(username: String!): Boolean!
-    validateEmailAvailability(email: String!): Boolean!
+    getAuthUser: User!
   }
 
   extend type Mutation {
     registerUser(user: UserInput!): User!
-    updateUser(user: UserInput!): User!
+    updateUser(id: ID!, user: UserInput!): User!
     deleteUser(password: String!): User!
   }
 
   type User {
     id: ID
-    token: String
-    firstName: String
-    lastName: String
+    fullName: String
     username: String
     email: String
     role: Role
+    fitbit: FitbitAccount
     createdAt: Date
     updatedAt: Date
+  }
+
+  type FitbitAccount {
+    id: ID
+    sleepGoal: Int
   }
 
   enum Role {
@@ -34,8 +36,7 @@ export const userTypeDefs = gql`
   }
 
   input UserInput {
-    firstName: String
-    lastName: String
+    fullName: String
     username: String
     email: String
     password: String
@@ -44,68 +45,64 @@ export const userTypeDefs = gql`
 
 export const userResolvers = {
   Query: {
-    login: async (_, { user: { username, password } }, { db }) => {
-      const user = await authenticateUser(username, password, db, ErrorMessageEnum.LOGIN_FAILED);
-      user.token = generateUserToken(username);
+    getAuthUser: (_, __, { user }) => {
+      if (!user) {
+        throw new AuthenticationError(ErrorMessageEnum.UNAUTHENTICATED);
+      }
       return user;
     },
-    getUser: (_parent, { username }, { contextUser, db }) => {
-      if (username !== contextUser.username) {
-        throw new ForbiddenError(ErrorMessageEnum.NO_PERMISSION);
+    getUser: async (_, { username }, { user, models }) => {
+      const result = await models.User.findOne({ username });
+      if (!result) {
+        throw new UserInputError(ErrorMessageEnum.NO_USER);
       }
-      return db.User.findOne({ username });
+      return !user || (user.username !== username && user.role !== RoleEnum.ADMIN)
+        ? {
+            id: result.id,
+            fullName: result.fullName,
+            username: result.username,
+          }
+        : result;
     },
   },
 
   Mutation: {
-    registerUser: async (_, { user }, { db }) => {
-      if (!user.username.match(/^[a-zA-Z0-9]{6,20}$/)) {
-        throw new UserInputError(ErrorMessageEnum.USERNAME_INVALID);
+    updateUser: async (_, { id, user: { password, ...user } }, { user: contextUser, models }) => {
+      if (!contextUser) {
+        throw new AuthenticationError(ErrorMessageEnum.UNAUTHENTICATED);
+      }
+      if (!user.username.match(/^(?=.{6,36}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/)) {
+        throw new UserInputError(ErrorMessageEnum.USERNAME_POLICY_FAILED);
       }
       if (!user.email.includes('@')) {
-        throw new UserInputError(ErrorMessageEnum.EMAIL_INVALID);
+        throw new UserInputError(ErrorMessageEnum.EMAIL_MALFORMED);
       }
-      if (!user.password.match(/^.{8,}$/)) {
-        throw new UserInputError(ErrorMessageEnum.PASSWORD_INVALID);
+      const updatedUser = await models.User.findById(id);
+      if (updatedUser.id !== contextUser.id && contextUser.role !== RoleEnum.ADMIN) {
+        throw new ForbiddenError(ErrorMessageEnum.UNAUTHORIZED);
       }
-      if (await db.User.findOne({ username: user.username })) {
-        throw new UserInputError(ErrorMessageEnum.USERNAME_TAKEN);
+      if (
+        (await models.User.findOne({ username: user.username })) &&
+        user.username !== updatedUser.username
+      ) {
+        throw new UserInputError(ErrorMessageEnum.USERNAME_DUPLICATED);
       }
-      if (await db.User.findOne({ email: user.email })) {
-        throw new UserInputError(ErrorMessageEnum.EMAIL_TAKEN);
+      if ((await models.User.findOne({ email: user.email })) && user.email !== updatedUser.email) {
+        throw new UserInputError(ErrorMessageEnum.EMAIL_DUPLICATED);
       }
-      const result = await db.User.create(user);
-      result.token = generateUserToken(user.username);
-      return result;
-    },
-    updateUser: async (_, { user: { password, ...user } }, { contextUser, db }) => {
-      if (!user.username.match(/^[a-zA-Z0-9]{6,20}$/)) {
-        throw new UserInputError(ErrorMessageEnum.USERNAME_INVALID);
-      }
-      if (!user.email.includes('@')) {
-        throw new UserInputError(ErrorMessageEnum.EMAIL_INVALID);
-      }
-      if ((await db.User.findOne({ username: user.username })) && user.username !== contextUser.username) {
-        throw new UserInputError(ErrorMessageEnum.USERNAME_TAKEN);
-      }
-      if ((await db.User.findOne({ email: user.email })) && user.email !== contextUser.email) {
-        throw new UserInputError(ErrorMessageEnum.EMAIL_TAKEN);
-      }
-      const result = await db.User.findOne({ username: contextUser.username });
-      Object.assign(result, user);
+      Object.assign(updatedUser, user);
       if (password) {
         if (!password.match(/^.{8,}$/)) {
-          throw new UserInputError(ErrorMessageEnum.PASSWORD_INVALID);
+          throw new UserInputError(ErrorMessageEnum.PASSWORD_POLICY_FAILED);
         }
-        result.password = password;
+        updatedUser.password = password;
       }
-      await result.save();
-      result.token = generateUserToken(user.username);
-      return result;
+      await updatedUser.save();
+      return updatedUser;
     },
-    deleteUser: async (_, { password }, { contextUser, db }) => {
-      await authenticateUser(contextUser.username, password, db);
-      return db.User.findOneAndDelete({ username: contextUser.username });
+    deleteUser: async (_, { password }, { user, models }) => {
+      await authenticateUser(user.username, password, models);
+      return models.User.findOneAndDelete({ username: user.username });
     },
   },
 };
