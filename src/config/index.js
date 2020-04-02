@@ -18,7 +18,7 @@ export const sessionOptions = {
   saveUninitialized: false,
   cookie: {
     secure: true,
-    sameSite: true,
+    sameSite: 'none',
   },
   store: new MongoStore({
     mongooseConnection: mongoose.connection,
