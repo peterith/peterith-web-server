@@ -82,12 +82,15 @@ export const userResolvers = {
         throw new ForbiddenError(ErrorMessageEnum.UNAUTHORIZED);
       }
       if (
-        (await models.User.findOne({ username: user.username })) &&
-        user.username !== updatedUser.username
+        (await models.User.findOne({ username: user.username.toLowerCase() })) &&
+        user.username.toLowerCase() !== updatedUser.username
       ) {
         throw new UserInputError(ErrorMessageEnum.USERNAME_DUPLICATED);
       }
-      if ((await models.User.findOne({ email: user.email })) && user.email !== updatedUser.email) {
+      if (
+        (await models.User.findOne({ email: user.email.toLowerCase() })) &&
+        user.email.toLowerCase() !== updatedUser.email
+      ) {
         throw new UserInputError(ErrorMessageEnum.EMAIL_DUPLICATED);
       }
       Object.assign(updatedUser, user);

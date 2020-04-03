@@ -29,6 +29,6 @@ export const setUpClient = (user) => {
 };
 
 export const tearDown = async () => {
-  await Promise.all(Object.keys(models).map((key) => models[key].deleteMany({})));
+  await Promise.all(Object.keys(models).map((key) => models[key].deleteMany()));
   await mongoose.connection.close();
 };

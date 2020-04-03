@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
+      lowercase: true,
+      trim: true,
       match: /^(?=.{6,36}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/,
       minlength: 6,
       maxlength: 36,
@@ -19,6 +21,9 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
+      lowercase: true,
+      trim: true,
+      minlength: 3,
       maxlength: 254,
     },
     password: {

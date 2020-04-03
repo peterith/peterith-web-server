@@ -34,7 +34,7 @@ app.post('/register', async (req, res) => {
       !req.body.password.match(/^.{8,}$/)
     ) {
       res.sendStatus(422); // Unprocessable Entity
-    } else if (await models.User.findOne({ email: req.body.email })) {
+    } else if (await models.User.findOne({ email: req.body.email.toLowerCase() })) {
       res.sendStatus(409); // Conflict
     } else {
       const user = await models.User.create({
@@ -84,27 +84,32 @@ app.get('/connect/fitbit/callback', passport.authorize('fitbit'), (req, res) => 
 });
 
 app.get('/connect/fitbit/revoke', async (req, res) => {
-  const { status } = await fetch(`${process.env.FITBIT_API_URL}/oauth2/revoke`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(
-        `${process.env.FITBIT_CLIENT_ID}:${process.env.FITBIT_CLIENT_SECRET}`,
-      ).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: `token=${req.user.fitbit.refreshToken}`,
-  });
+  try {
+    const { status } = await fetch(`${process.env.FITBIT_API_URL}/oauth2/revoke`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${process.env.FITBIT_CLIENT_ID}:${process.env.FITBIT_CLIENT_SECRET}`,
+        ).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `token=${req.user.fitbit.refreshToken}`,
+    });
 
-  switch (status) {
-    case 200:
-      console.log('success!');
-      break;
-    default:
-      console.log(status);
-      break;
+    switch (status) {
+      case 200:
+        req.user.fitbit = null;
+        req.user.save();
+        break;
+      default:
+        throw new Error("Unable to revoke user's Fitbit tokens.");
+    }
+  } catch (error) {
+    models.ErrorLog.create({
+      user: req.user.id,
+      message: error,
+    });
   }
-  req.user.fitbit = null;
-  req.user.save();
   res.redirect(`${process.env.CLIENT_URL}/@${req.user.username}`);
 });
 

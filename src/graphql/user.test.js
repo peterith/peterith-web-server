@@ -38,7 +38,7 @@ describe('Get User', () => {
     await tearDown();
   });
 
-  it('should return user if username matches context user', async () => {
+  it('should return user', async () => {
     const user = await models.User.create({
       fullName: 'John Doe',
       username: 'johndoe',
@@ -290,10 +290,6 @@ describe('Update User', () => {
       username: 'johndoe',
       email: 'johndoe@mail.com',
       password: 'password',
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
     });
     ({ mutate } = setUpClient(user));
     await mutate({
@@ -309,18 +305,9 @@ describe('Update User', () => {
     });
     const result = await models.User.findById(user.id);
     const expected = {
-      id: expect.any(String),
       fullName: 'Joe Bloggs',
       username: 'joebloggs',
       email: 'joebloggs@mail.com',
-      password: expect.stringMatching(/^\$2[ayb]\$.{56}$/),
-      role: RoleEnum.USER,
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
-      createdAt: expect.any(Date),
-      updatedAt: expect.any(Date),
     };
     expect(result).toMatchObject(expected);
   });
@@ -371,19 +358,11 @@ describe('Update User', () => {
       email: 'johndoe@mail.com',
       password: 'password',
       role: RoleEnum.ADMIN,
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
     });
     const user = await models.User.create({
       username: 'joebloggs',
       email: 'joebloggs@mail.com',
       password: 'password',
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
     });
     ({ mutate } = setUpClient(admin));
     await mutate({
@@ -399,70 +378,63 @@ describe('Update User', () => {
     });
     const result = await models.User.findById(user.id);
     const expected = {
-      id: expect.any(String),
       fullName: 'Joe Bloggs',
       username: 'joe_bloggs',
       email: 'joe_bloggs@mail.com',
-      password: expect.stringMatching(/^\$2[ayb]\$.{56}$/),
-      role: RoleEnum.USER,
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
-      createdAt: expect.any(Date),
-      updatedAt: expect.any(Date),
     };
     expect(result).toMatchObject(expected);
   });
 
-  it('should return any user if context user is admin', async () => {
-    const admin = await models.User.create({
+  it('should update user if username/email remains the same', async () => {
+    const user = await models.User.create({
       username: 'johndoe',
       email: 'johndoe@mail.com',
       password: 'password',
-      role: RoleEnum.ADMIN,
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
     });
-    const user = await models.User.create({
-      username: 'joebloggs',
-      email: 'joebloggs@mail.com',
-      password: 'password',
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
-    });
-    ({ mutate } = setUpClient(admin));
-    const {
-      data: { updateUser },
-    } = await mutate({
+    ({ mutate } = setUpClient(user));
+    await mutate({
       mutation: UPDATE_USER,
       variables: {
         id: user.id,
         user: {
           fullName: 'Joe Bloggs',
-          username: 'joe_bloggs',
-          email: 'joe_bloggs@mail.com',
+          username: 'johndoe',
+          email: 'johndoe@mail.com',
         },
       },
     });
+    const result = await models.User.findById(user.id);
     const expected = {
-      id: expect.any(String),
       fullName: 'Joe Bloggs',
-      username: 'joe_bloggs',
-      email: 'joe_bloggs@mail.com',
-      role: RoleEnum.USER,
-      fitbit: {
-        id: 'fitbitId',
-        sleepGoal: 500,
-      },
-      createdAt: expect.any(String),
-      updatedAt: expect.any(String),
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
     };
-    expect(updateUser).toEqual(expected);
+    expect(result).toMatchObject(expected);
+  });
+
+  it('should convert username and email to lower case', async () => {
+    const user = await models.User.create({
+      username: 'johndoe',
+      email: 'johndoe@mail.com',
+      password: 'password',
+    });
+    ({ mutate } = setUpClient(user));
+    await mutate({
+      mutation: UPDATE_USER,
+      variables: {
+        id: user.id,
+        user: {
+          username: 'JoeBloggs',
+          email: 'JoeBloggs@Mail.com',
+        },
+      },
+    });
+    const result = await models.User.findById(user.id);
+    const expected = {
+      username: 'joebloggs',
+      email: 'joebloggs@mail.com',
+    };
+    expect(result).toMatchObject(expected);
   });
 
   it('should hash and save new password', async () => {
