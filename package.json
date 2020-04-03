@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node build/app.js",
-    "test": "jest",
+    "test": "jest --runInBand",
     "build": "babel src -d build",
     "dev": "nodemon --exec babel-node src/app.js -r dotenv/config",
     "lint": "eslint ."

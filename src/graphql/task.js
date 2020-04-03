@@ -1,4 +1,5 @@
 import { gql } from 'apollo-server-express';
+import { RoleEnum } from '../utils/enums';
 
 export const taskTypeDefs = gql`
   extend type Query {
@@ -44,7 +45,8 @@ export const taskTypeDefs = gql`
 export const taskResolvers = {
   Query: {
     getTasks: (_, { userId }, { user, models }) => {
-      const field = !user || user.id !== userId ? { isPublic: true } : {};
+      const field =
+        user && (user.id === userId || user.role === RoleEnum.ADMIN) ? {} : { isPublic: true };
       return models.Task.find({ ...field, user: userId }).sort({ order: 1 });
     },
   },

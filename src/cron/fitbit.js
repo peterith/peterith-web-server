@@ -7,7 +7,6 @@ export default new CronJob(process.env.CRON_JOB_FITBIT, async () => {
   const users = await models.User.find({ 'fitbit.id': { $ne: null } });
   users.map(async (user) => {
     await refreshTokens(user);
-    console.log(user);
     processNewFitbitSleepData(user);
     updateSleepGoal(user);
   });
