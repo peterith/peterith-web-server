@@ -19,7 +19,7 @@ export const sessionOptions = {
   proxy: true,
   cookie: {
     secure: true,
-    sameSite: 'none',
+    sameSite: 'strict',
   },
   store: new MongoStore({
     mongooseConnection: mongoose.connection,
