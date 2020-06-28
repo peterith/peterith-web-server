@@ -16,9 +16,7 @@ export const sessionOptions = {
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  proxy: true,
   cookie: {
-    secure: true,
     sameSite: 'strict',
   },
   store: new MongoStore({

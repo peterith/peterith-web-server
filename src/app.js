@@ -13,6 +13,12 @@ import { scheduleJobs } from './cron';
 const app = express();
 app.use(express.json());
 app.use(cors(corsOptions));
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+  session.proxy = true;
+  session.cookie.secure = true;
+}
 app.use(session(sessionOptions));
 
 app.use(passport.initialize());
@@ -55,7 +61,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.get('/healthcheck', (req, res) => {
+app.get('/healthcheck', (_req, res) => {
   res.json({
     uptime: process.uptime(),
     timestamp: Date.now(),
@@ -123,7 +129,10 @@ const server = new ApolloServer({
   }),
 });
 
-server.applyMiddleware({ app, cors: corsOptions });
+server.applyMiddleware({
+  app,
+  cors: corsOptions,
+});
 
 app.listen(process.env.PORT, () => {
   console.log(`Server ready at http://localhost:${process.env.PORT}${server.graphqlPath}`);
