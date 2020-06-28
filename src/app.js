@@ -16,8 +16,8 @@ app.use(cors(corsOptions));
 
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
-  session.proxy = true;
-  session.cookie.secure = true;
+  sessionOptions.proxy = true;
+  sessionOptions.cookie.secure = true;
 }
 app.use(session(sessionOptions));
 
